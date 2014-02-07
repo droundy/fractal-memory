@@ -9,7 +9,7 @@ import (
 )
 
 var Quality = flag.Float64("quality", 3, "quality of image")
-var Brightness = flag.Float64("brightness", 4, "brightness of image")
+var Brightness = flag.Float64("brightness", 0.03, "brightness of image")
 
 type Pt struct {
 	X, Y, R, G, B float64
@@ -61,7 +61,16 @@ func Distance(x, y float64) float64 {
 }
 
 func (t *FastTransform) Transform22(p Pt) (o Pt) {
+	if p.X != p.X || p.Y != p.Y || p.R != p.R {
+		fmt.Println("NaN:", p.X, p.Y, p.R)
+		panic("nan")
+	}
+
 	o = t.Pre.Transform(p)
+	if o.X != o.X || o.Y != o.Y || o.R != o.R {
+		fmt.Println("NaN:", o.X, o.Y, o.R)
+		panic("nan")
+	}
 	o.R = 0.5*(p.R + t.R)
 	o.G = 0.5*(p.G + t.G)
 	o.B = 0.5*(p.B + t.B)
@@ -70,26 +79,32 @@ func (t *FastTransform) Transform22(p Pt) (o Pt) {
 		// Nothing to do
 		return
 	case HorseShoeT:
+		p = o
 		r := Distance(o.X, o.Y)
-		oX := (o.X - o.Y)*(o.X + o.Y)/r
+		oX := (o.X - o.Y)*(o.X + o.Y)/(1+r)
 		oY := 2*o.X*o.Y/(1+r)
+		if math.Abs(oX) > 1e9 {
+			fmt.Println(r, o.X, o.Y, "and now", Distance(oX, oY), oX, oY)
+		}
 		o.X = oX
 		o.Y = oY
 	case SwirlT:
 		r2 := o.X*o.X + o.Y*o.Y
-		sinr2 := math.Sin(r2)
-		cosr2 := math.Cos(r2)
-		oX := o.X*sinr2 - o.Y*cosr2
-		oY := o.X*cosr2 + o.Y*sinr2
-		o.X = oX
-		o.Y = oY
+		if r2 < 1e10 {
+			sinr2 := math.Sin(r2)
+			cosr2 := math.Cos(r2)
+			oX := o.X*sinr2 - o.Y*cosr2
+			oY := o.X*cosr2 + o.Y*sinr2
+			o.X = oX
+			o.Y = oY
+		}
 	case SphericalT:
 		r2 := o.X*o.X + o.Y*o.Y
 		if r2 == 0 {
 			return t.Post.Transform(o)
 		}
-		o.X /= 0.1 + r2
-		o.Y /= 0.1 + r2
+		o.X /= 1 + r2
+		o.Y /= 1 + r2
 	case SinusoidalT:
 		o.X = math.Sin(o.X)
 		o.Y = math.Sin(o.Y)
@@ -104,8 +119,33 @@ func (t *FastTransform) Transform22(p Pt) (o Pt) {
 		o.X = r*math.Sin(r+theta)
 		o.Y = r*math.Cos(r+theta)
 	}
+	if math.Abs(o.X) > 1e10  || math.Abs(o.Y) > 1e10 {
+		fmt.Println(t.Type, "huge:", o.X, o.Y, o.R, "was", p.X, p.Y)
+		panic("huge")
+	}
+	if o.X != o.X || o.Y != o.Y || o.R != o.R {
+		fmt.Println(t.Type, "NaN:", o.X, o.Y, o.R, "was", p.X, p.Y)
+		panic("nan")
+	}
 	o = t.Post.Transform(o)
 	return
+}
+
+type SymmetryType uint8
+const (
+	Identity SymmetryType = iota
+  Mirror
+  Inversion
+	Rotation
+)
+func (t SymmetryType) String() string {
+	switch t {
+	case Identity: return "Identity"
+	case Mirror: return "Mirror"
+	case Inversion: return "Inversion"
+	case Rotation: return "Rotation"
+	}
+	panic("unknown symmetry")
 }
 
 type FastSymmetry struct {
@@ -129,12 +169,16 @@ type Flame struct {
 }
 
 func (a *FastAffine) Init(r func() float64) {
-	a.Mxx = r()
-	a.Mxy = r()
-	a.Myx = r()
-	a.Myy = r()
-	Mlen := math.Sqrt(math.Abs(a.Mxx*a.Myy - a.Mxy*a.Myx))
-	if Mlen < 1.0 {
+	Mlen := 0.0
+	for Mlen < .5 {
+		a.Mxx = r()
+		a.Mxy = r()
+		a.Myx = r()
+		a.Myy = r()
+		Mlen = math.Sqrt(math.Abs(a.Mxx*a.Myy - a.Mxy*a.Myx))
+	}
+	//fmt.Println("Mlen", Mlen)
+	if Mlen < 1 {
 		a.Ox = r()*(1.0 - Mlen)
 		a.Oy = r()*(1.0 - Mlen)
 	} else {
@@ -172,26 +216,41 @@ func CreateFlame(ntrans, nsymm int, r func() float64) (f Flame) {
 		f.Transformations[i].R = myR
 		f.Transformations[i].G = myG
 		f.Transformations[i].B = myB
-		f.Transformations[i].Type = TransformType(float64(SphericalT+1)*r())
+
+		// Now select the transform type:
+		pTypes := make([]float64, SphericalT+1)
+		pTypes[AffineT] = 0
+		pTypes[SwirlT] = 1
+		pTypes[HorseShoeT] = 1
+		pTypes[SinusoidalT] = 1
+		pTypes[PolarT] = 1
+		pTypes[CircleT] = 1
+		pTypes[SphericalT] = 1
+		f.Transformations[i].Type = TransformType(PickFromProbabilities(pTypes, r()))
 		fmt.Println(f.Transformations[i].Type)
 	}
 	f.TotSymmetries = 10
-	for f.TotSymmetries > 5 {
+	sTypes := make([]float64, Rotation+1)
+	sTypes[Identity] = 0
+	sTypes[Inversion] = 1
+	sTypes[Rotation] = 6
+	sTypes[Mirror] = 1
+	for f.TotSymmetries > 6 {
 		f.TotSymmetries = 1
 		for i := range(f.Symmetries) {
-			pIdentity := 2.0
-			pInversion := pIdentity + 1.0
-			pRotation := pInversion + 6
-			pMirror := pRotation + 1
-			switch p := r()*pMirror; {
-			case p < pIdentity:
+			t := SymmetryType(PickFromProbabilities(sTypes, r()))
+			if f.TotSymmetries > 3 {
+				t = Identity
+			}
+			switch t {
+			case Identity:
 				fmt.Println("Identity")
 				f.Symmetries[i].A.Mxx = 1
 				f.Symmetries[i].A.Mxy = 0
 				f.Symmetries[i].A.Myx = 0
 				f.Symmetries[i].A.Myy = 1
 				f.Symmetries[i].N = 1
-			case p < pInversion:
+			case Inversion:
 				fmt.Println("Inversion")
 				f.Symmetries[i].A.Mxx = -1
 				f.Symmetries[i].A.Mxy = 0
@@ -200,12 +259,8 @@ func CreateFlame(ntrans, nsymm int, r func() float64) (f Flame) {
 				f.Symmetries[i].A.Ox = 0.8*s()
 				f.Symmetries[i].A.Oy = 0.8*s()
 				f.Symmetries[i].N = 2
-			case p < pRotation:
-				rootn := math.Sqrt(5)*0.5*(1+r())
-				n := 1+int(rootn*rootn)
-				if n < 2 {
-					n = 2
-				}
+			case Rotation:
+				n := 1+int(6*r()/float64(f.TotSymmetries))
 				fmt.Println("Rotation", n)
 				theta := 2*math.Pi/float64(n)
 				f.Symmetries[i].A.Mxx =  math.Cos(theta)
@@ -215,7 +270,7 @@ func CreateFlame(ntrans, nsymm int, r func() float64) (f Flame) {
 				f.Symmetries[i].A.Ox = 0.5*s()
 				f.Symmetries[i].A.Oy = 0.5*s()
 				f.Symmetries[i].N = n
-			case p < pMirror:
+			case Mirror:
 				fmt.Println("Mirror")
 				x := s()
 				y := s()
@@ -298,6 +353,14 @@ func (f *Flame) Run(size int) image.Image {
 			return nil
 		}
 	}
+	filling := 0.0
+	for _,h := range(histA) {
+		if h != 0 {
+			filling++
+		}
+	}
+	filling /= float64(len(histA))
+	fmt.Printf("Filled %2.0f%%\n", filling*100)
 	im := image.NewNRGBA(image.Rect(0,0,size,size))
 	maxA := 0.0
 	minA := 1.0
@@ -309,11 +372,12 @@ func (f *Flame) Run(size int) image.Image {
 			minA = histA[i]
 		}
 	}
+	denominator := minA * filling * filling * filling / *Brightness
 	for ix := 0; ix < size; ix++ {
 		for iy := 0; iy < size; iy++ {
 			n := ix + size*iy
 			if histA[n] > 0 {
-				a := math.Log(histA[n]/minA* *Brightness)/math.Log(maxA/minA* *Brightness)/histA[n]
+				a := math.Log(histA[n]/denominator)/math.Log(maxA/denominator)/histA[n]
 				//fmt.Println(ix, iy, a, histA[n])
 				im.Set(ix, iy, RGB(histR[n]*a, histG[n]*a, histB[n]*a))
 			} else {
@@ -345,4 +409,19 @@ func RGB(r, g, b float64) color.Color {
 		b = 0
 	}
 	return color.NRGBA{ uint8(r*256), uint8(g*256), uint8(b*256), 255 }
+}
+
+func PickFromProbabilities(p []float64, v float64) int {
+	cumulative := make([]float64, len(p))
+	cumulative[0] = p[0]
+	for i:=1;i<len(cumulative);i++ {
+		cumulative[i] = p[i] + cumulative[i-1]
+	}
+	v *= cumulative[len(cumulative)-1]
+	for i := range(cumulative) {
+		if v < cumulative[i] {
+			return i
+		}
+	}
+	return 0
 }

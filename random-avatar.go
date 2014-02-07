@@ -26,7 +26,7 @@ func main() {
 	}
 	var i image.Image
 	for i == nil {
-		f := flame.CreateFlame(1, 2, rand.Float64)
+		f := flame.CreateFlame(4, 2, rand.Float64)
 		i = f.Run(*size)
 	}
 
