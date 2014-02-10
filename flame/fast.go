@@ -79,15 +79,15 @@ func (t *FastTransform) Transform22(p Pt) (o Pt) {
 		// Nothing to do
 		return
 	case HorseShoeT:
-		p = o
-		r := Distance(o.X, o.Y)
-		oX := (o.X - o.Y)*(o.X + o.Y)/(1+r)
-		oY := 2*o.X*o.Y/(1+r)
+		p = o;
+		r := Distance(o.X, o.Y);
+		oX := (o.X - o.Y)*(o.X + o.Y)/(1+r);
+		oY := 2*o.X*o.Y/(1+r);
 		if math.Abs(oX) > 1e9 {
-			fmt.Println(r, o.X, o.Y, "and now", Distance(oX, oY), oX, oY)
+			fmt.Println(r, o.X, o.Y, "and now", Distance(oX, oY), oX, oY);
 		}
-		o.X = oX
-		o.Y = oY
+		o.X = oX;
+		o.Y = oY;
 	case SwirlT:
 		r2 := o.X*o.X + o.Y*o.Y
 		if r2 < 1e10 {
@@ -353,17 +353,17 @@ func (f *Flame) Run(size int) image.Image {
 			return nil
 		}
 	}
-	filling := 0.0
+	filling := 0.0;
 	for _,h := range(histA) {
 		if h != 0 {
-			filling++
+			filling++;
 		}
 	}
-	filling /= float64(len(histA))
+	filling /= float64(len(histA));
 	fmt.Printf("Filled %2.0f%%\n", filling*100)
 	im := image.NewNRGBA(image.Rect(0,0,size,size))
 	maxA := 0.0
-	minA := 1.0
+	minA := 10000.0
 	for i := 0; i < size*size; i++ {
 		if histA[i] > maxA {
 			maxA = histA[i]
