@@ -2,6 +2,7 @@ package main
 
 import (
 	"./flame"
+	"./hashrand"
 	"os"
 	"fmt"
 	"time"
@@ -20,13 +21,17 @@ func main() {
 	if *seed == 0 {
 		t := time.Now().UTC().UnixNano()/1000 % 10000
 		fmt.Println("Seeding with time...", t)
-		rand.Seed(t)
-	} else {
-		rand.Seed( *seed )
+		*seed = t
 	}
+	rand.Seed( *seed )
 	var i image.Image
 	for i == nil {
-		f := flame.CreateFlame(4, 2, rand.Float64)
+		var f flame.Flame
+		if true {
+			f = flame.CreateFlame(4, 2, hashrand.Rand(fmt.Sprint( *seed )))
+		} else {
+			f = flame.CreateFlame(4, 2, rand.Float64)
+		}
 		i = f.Run(*size)
 	}
 

@@ -1,6 +1,7 @@
 package flame
 
 import (
+	"../hashrand"
 	"math"
 	"fmt"
 	"image"
@@ -163,7 +164,7 @@ func (s *FastSymmetry) Transform(p Pt) Pt {
 type Flame struct {
 	Transformations []FastTransform
 	Symmetries []FastSymmetry
-	R func() float64
+	I func() int
 	Next int
 	TotSymmetries int
 }
@@ -193,7 +194,8 @@ func (a *FastAffine) Init(r func() float64) {
 }
 
 func CreateFlame(ntrans, nsymm int, r func() float64) (f Flame) {
-	f.R = r
+	f.I = hashrand.MultiplyWithCarryRand
+	//f.I = func() int { return int(256*256*r()) }
 	s := func() float64 { return (r() - 0.5)*2 }
 	f.Transformations = make([]FastTransform, ntrans)
 	f.Symmetries = make([]FastSymmetry, nsymm)
@@ -294,15 +296,15 @@ func CreateFlame(ntrans, nsymm int, r func() float64) (f Flame) {
 }
 
 func (f *Flame) Transform(p Pt) (o Pt) {
-	what_to_do := int(f.R()*float64(1+f.TotSymmetries))
+	what_to_do := f.I() % (1+f.TotSymmetries)
 	if what_to_do == 0 {
-		n := int(f.R()*float64(len(f.Transformations)))
+		n := f.I() % len(f.Transformations)
 		return f.Transformations[n].Transform22(p)
 	}
 	what_to_do--
 	for i := 0; i<len(f.Symmetries); i++ {
 		if f.Symmetries[i].N > 0 {
-			if f.R() > 1.0/float64(f.Symmetries[i].N) {
+			if f.I() % f.Symmetries[i].N > 0 {
 				p = f.Symmetries[i].Transform(p)
 			}
 		}
@@ -321,7 +323,7 @@ func (f *Flame) Run(size int) image.Image {
 	wanthits := math.Pow(10, *Quality)*float64(size)*float64(size)
 	notifyme := wanthits/100
 
-	p := Pt{ f.R(), f.R(), 0, 0, 0 }
+	p := Pt{ 0.123, 0.137, 0, 0, 0 }
 	for i:=0;i<10000;i++ {
 		p = f.Transform(p)
 	}
@@ -364,6 +366,8 @@ func (f *Flame) Run(size int) image.Image {
 	im := image.NewNRGBA(image.Rect(0,0,size,size))
 	maxA := 0.0
 	minA := 10000.0
+	meanA := 0.0
+	hits = 0
 	for i := 0; i < size*size; i++ {
 		if histA[i] > maxA {
 			maxA = histA[i]
@@ -371,12 +375,20 @@ func (f *Flame) Run(size int) image.Image {
 		if histA[i] > 0 && histA[i] < minA {
 			minA = histA[i]
 		}
+		if histA[i] > 0 {
+			meanA += histA[i]
+			hits++
+		}
 	}
-	denominator := minA * filling * filling * filling / *Brightness
+	meanA /= hits
+	denominator := meanA*meanA/maxA // minA * filling * filling * filling / *Brightness
 	for ix := 0; ix < size; ix++ {
 		for iy := 0; iy < size; iy++ {
 			n := ix + size*iy
 			if histA[n] > 0 {
+				// a(minA)*histA == 0
+				// I wish that... a(maxA)*histA == 1 ... but it's not true
+				// a(meanA)*histA == 0.5
 				a := math.Log(histA[n]/denominator)/math.Log(maxA/denominator)/histA[n]
 				//fmt.Println(ix, iy, a, histA[n])
 				im.Set(ix, iy, RGB(histR[n]*a, histG[n]*a, histB[n]*a))
