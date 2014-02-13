@@ -6,11 +6,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"flag"
 )
-
-var Quality = flag.Float64("quality", 3, "quality of image")
-var Brightness = flag.Float64("brightness", 0.03, "brightness of image")
 
 type Pt struct {
 	X, Y, R, G, B float64
@@ -312,7 +308,7 @@ func (f *Flame) Transform(p Pt) (o Pt) {
 	return p
 }
 
-func (f *Flame) Run(size int) image.Image {
+func (f *Flame) Run(size int, quality float64) image.Image {
 	histR := make([]float64, size*size)
 	histG := make([]float64, size*size)
 	histB := make([]float64, size*size)
@@ -320,7 +316,7 @@ func (f *Flame) Run(size int) image.Image {
 
 	hits := 0.0
 	misses := 0.0
-	wanthits := math.Pow(10, *Quality)*float64(size)*float64(size)
+	wanthits := math.Pow(10, quality)*float64(size)*float64(size)
 	notifyme := wanthits/100
 
 	p := Pt{ 0.123, 0.137, 0, 0, 0 }
@@ -350,10 +346,10 @@ func (f *Flame) Run(size int) image.Image {
 		} else {
 			misses++
 		}
-		if misses > 1000 && misses < 2000 && hits/misses < 0.5 {
-			fmt.Printf("\nGiving up with ratio %g!\n\n", hits/misses)
-			return nil
-		}
+		//if misses > 1000 && misses < 2000 && hits/misses < 0.5 {
+		//	fmt.Printf("\nGiving up with ratio %g!\n\n", hits/misses)
+		//	return nil
+		//}
 	}
 	filling := 0.0;
 	for _,h := range(histA) {
@@ -381,7 +377,7 @@ func (f *Flame) Run(size int) image.Image {
 		}
 	}
 	meanA /= hits
-	denominator := meanA*meanA/maxA // minA * filling * filling * filling / *Brightness
+	denominator := meanA*meanA/maxA
 	for ix := 0; ix < size; ix++ {
 		for iy := 0; iy < size; iy++ {
 			n := ix + size*iy

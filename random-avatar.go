@@ -13,17 +13,18 @@ import (
 	"math/rand"
 )
 
-var seed = flag.Int64("seed", 0, "random number seed")
+var seed = flag.String("seed", "", "random number seed")
 var size = flag.Int("size", 100, "size of graphic")
+var quality = flag.Float64("quality", 3, "quality of image")
 
 func main() {
 	flag.Parse()
-	if *seed == 0 {
-		t := time.Now().UTC().UnixNano()/1000 % 10000
-		fmt.Println("Seeding with time...", t)
+	if *seed == "" {
+		t := ":" + Things[(time.Now().UTC().UnixNano()/1000) % int64(len(Things))]
+		fmt.Println("Seeding with time-based... ", t)
 		*seed = t
 	}
-	rand.Seed( *seed )
+	//rand.Seed( *seed )
 	var i image.Image
 	for i == nil {
 		var f flame.Flame
@@ -32,7 +33,7 @@ func main() {
 		} else {
 			f = flame.CreateFlame(4, 2, rand.Float64)
 		}
-		i = f.Run(*size)
+		i = f.Run(*size, *quality)
 	}
 
 	f, err := os.Create("avatar.jpg")
@@ -53,8 +54,8 @@ func main() {
 	jpeg.Encode(f, i, &jpeg.Options{100})
 	png.Encode(p, i)
 
-	p2, err := os.Create(fmt.Sprintf("avatar-seed-%d-size-%d-bright-%f-quality-%f.png",
-		*seed, *size, *flame.Brightness, *flame.Quality))
+	p2, err := os.Create(fmt.Sprintf("avatar-seed-%d-size-%d-quality-%f.png",
+		*seed, *size, *quality))
 	if err != nil {
 		fmt.Println("Error creating file: ", err)
 		os.Exit(1)
