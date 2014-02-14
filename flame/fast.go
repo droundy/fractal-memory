@@ -324,6 +324,14 @@ func (f *Flame) Run(size int, quality float64) image.Image {
 		p = f.Transform(p)
 	}
 
+	meanr := 0.0
+	for i := 0; i<1000; i++ {
+		p = f.Transform(p)
+		meanr += math.Sqrt(p.X*p.X + p.Y*p.Y)
+	}
+	meanr /= 1000
+	fmt.Println("meanr", meanr)
+
 	for hits < wanthits {
 		if hits > notifyme {
 			fmt.Printf("%2.0f%% done!\r", 100*notifyme/wanthits)
@@ -334,8 +342,8 @@ func (f *Flame) Run(size int, quality float64) image.Image {
 			fmt.Println("NaN:", p.X, p.Y, p.R)
 			panic("nan")
 		}
-		xint := int((p.X + 1.0)*0.5*float64(size))
-		yint := int((p.Y + 1.0)*0.5*float64(size))
+		xint := int((p.X/meanr/2 + 1.0)*0.5*float64(size))
+		yint := int((p.Y/meanr/2 + 1.0)*0.5*float64(size))
 		n := xint + size*yint
 		if n >= 0 && n < size*size {
 			histR[n] += p.R
@@ -362,7 +370,10 @@ func (f *Flame) Run(size int, quality float64) image.Image {
 	im := image.NewNRGBA(image.Rect(0,0,size,size))
 	maxA := 0.0
 	minA := 10000.0
+	mean_nonzero_A := 0.0
+	mean_sqr_nonzero_A := 0.0
 	meanA := 0.0
+	meansqrA := 0.0
 	hits = 0
 	for i := 0; i < size*size; i++ {
 		if histA[i] > maxA {
@@ -372,12 +383,26 @@ func (f *Flame) Run(size int, quality float64) image.Image {
 			minA = histA[i]
 		}
 		if histA[i] > 0 {
-			meanA += histA[i]
+			mean_nonzero_A += histA[i]
+			mean_sqr_nonzero_A += histA[i]*histA[i]
 			hits++
 		}
+		meanA += histA[i]
+		meansqrA += histA[i]*histA[i]
 	}
-	meanA /= hits
-	denominator := meanA*meanA/maxA
+	mean_nonzero_A /= hits
+	mean_sqr_nonzero_A /= hits
+	meanA /= float64(size*size)
+	meansqrA /= float64(size*size)
+	stddev := math.Sqrt(meansqrA - meanA*meanA)
+	fmt.Println("minA", minA)
+	fmt.Println("maxA", maxA)
+	fmt.Println("meanA", meanA)
+	fmt.Println("stddev", stddev)
+	fmt.Println("mean_nonzero_A", mean_nonzero_A)
+	fmt.Println("root mean_sqr_nonzero_A", math.Sqrt(mean_sqr_nonzero_A))
+	denominator := mean_nonzero_A*mean_nonzero_A/maxA
+	//denominator = 2*stddev*stddev/maxA
 	for ix := 0; ix < size; ix++ {
 		for iy := 0; iy < size; iy++ {
 			n := ix + size*iy
