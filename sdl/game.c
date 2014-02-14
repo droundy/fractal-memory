@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
   int quit = 0;
 
   SDL_Event event;
-  const int frame_time = 100;
+  int frame_time = 100;
   int next_frame = frame_time;
   /* While the program is running */
   while (!quit) {
@@ -77,9 +77,22 @@ int main(int argc, char *argv[]) {
         /* Quit the application */
         quit = 1;
       }
+      if (event.type == SDL_KEYDOWN) {
+        switch (event.key.keysym.sym) {
+        case SDLK_q:
+          quit = 1;
+          break;
+        case SDLK_j:
+          frame_time /= 2;
+          break;
+        case SDLK_k:
+          frame_time *= 2;
+          break;
+        default:
+          exitMessage("Unrecognized key pressed");
+        }
+      }
     }
   }
-
-  exitMessage("This program doesn't work. Please fix it.");
   return 0;
 }
