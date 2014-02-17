@@ -1,15 +1,7 @@
-#include <stdio.h>
-#include <SDL2/SDL.h>
-
-void exitMessage(const char *msg) {
-  fprintf(stderr, "%s\n", msg);
-  SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
-                           "Fatal error!",
-                           msg,
-                           NULL);
-  SDL_Quit();
-  exit(1);
-}
+#include "game.h"
+#include "fractal-flames.h"
+#include <stdlib.h>
+#include <string.h>
 
 int main(int argc, char *argv[]) {
   SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
@@ -26,9 +18,9 @@ int main(int argc, char *argv[]) {
 
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");  // make the scaled rendering look smoother.
 
-  SDL_SetRenderDrawColor(sdlRenderer, 0, 0, 0, 255);
-  SDL_RenderClear(sdlRenderer);
-  SDL_RenderPresent(sdlRenderer);
+  //SDL_SetRenderDrawColor(sdlRenderer, 0, 0, 0, 255);
+  //SDL_RenderClear(sdlRenderer);
+  //SDL_RenderPresent(sdlRenderer);
 
   int width, height;
   SDL_GetWindowSize(sdlWindow, &width, &height);
@@ -38,7 +30,7 @@ int main(int argc, char *argv[]) {
                                               SDL_TEXTUREACCESS_STREAMING,
                                               width, height);
 
-  Uint32 *myPixels = (Uint32 *)malloc(4*width*height);
+  Uint32 *myPixels = (Uint32 *)calloc(width*height, 4);
   for (int i=0; i<width*height; i++) {
     myPixels[i] = 0xFFFF0000 + (i % 256) + 256*(i/4 % 256);
   }
@@ -51,6 +43,16 @@ int main(int argc, char *argv[]) {
   /* A bool to check if the program has exited */
   int quit = 0;
 
+  Flames f[4];
+  const int size = height*7/16;
+  const double quality = 3.0;
+  HistogramEntry *hist[4];
+  for (int i=0;i<4;i++) {
+    InitFlames(&f[i]);
+    hist[i] = (HistogramEntry *)calloc(size*size, sizeof(HistogramEntry));
+    ComputeInThread(&f[i], size, quality, hist[i]);
+  }
+
   SDL_Event event;
   int frame_time = 100;
   int next_frame = frame_time;
@@ -62,6 +64,11 @@ int main(int argc, char *argv[]) {
       for (int i=0; i<width*height; i++) {
         myPixels[i] = 0xFFFF0000 + ((now/frame_time+i) % 256) + 256*((now/frame_time + i)/4 % 256);
       }
+      ReadHistogram(size, width, hist[0], myPixels);
+      ReadHistogram(size, width, hist[1], myPixels+width/2);
+      ReadHistogram(size, width, hist[2], myPixels+height/2*width);
+      ReadHistogram(size, width, hist[3], myPixels+height/2*width + width/2);
+
       SDL_UpdateTexture(sdlTexture, NULL, myPixels, width * sizeof (Uint32));
 
       SDL_RenderClear(sdlRenderer);
@@ -82,14 +89,26 @@ int main(int argc, char *argv[]) {
         case SDLK_q:
           quit = 1;
           break;
+        case SDLK_z:
+          for (int i=0;i<4;i++) {
+            bzero(hist[i], size*size*sizeof(HistogramEntry));
+          }
+          break;
+        case SDLK_s:
+          for (int i=0;i<4;i++) {
+            InitFlames(&f[i]);
+            bzero(hist[i], size*size*sizeof(HistogramEntry));
+            ComputeInThread(&f[i], size, quality, hist[i]);
+          }
+          break;
         case SDLK_j:
           frame_time /= 2;
           break;
         case SDLK_k:
           frame_time *= 2;
           break;
-        default:
-          exitMessage("Unrecognized key pressed");
+          //default:
+          //exitMessage("Unrecognized key pressed");
         }
       }
     }

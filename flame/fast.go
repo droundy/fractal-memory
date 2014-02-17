@@ -161,7 +161,6 @@ type Flame struct {
 	Transformations []FastTransform
 	Symmetries []FastSymmetry
 	I func() int
-	Next int
 	TotSymmetries int
 }
 

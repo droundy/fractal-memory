@@ -11,7 +11,7 @@ env.ParseConfig('sdl2-config --libs')
 SOURCES = glob.glob('*.c')
 
 # add additional compiler flags
-env.Append(CCFLAGS = ['-g', '-Wall', '-std=c99'])
+env.Append(CCFLAGS = ['-g', '-Wall', '-std=c99', '-DSDL_ASSERT_LEVEL=2'])
 # add additional libraries to link against
 #env.Append(LIBS = ['SDL_mixer', 'SDL_image'])
 
