@@ -23,6 +23,9 @@ Questions:
 - How does color distinguishability depend on colors themselves? Is
   CIELUV or CIELAB distance relevant here?
 
+- How does *shape* distinguishability depend on colors themselves? Is
+  CIELUV or CIELAB distance relevant here?
+
 - How many distinguishable shapes can we generate by changing just one
   parameter, for each possible parameter? How does this entropy depend
   on parameter details, i.e. are there combinations we should avoid,

@@ -193,7 +193,8 @@ void ReadHistogram(int size, int stride, HistogramEntry *hist, Uint32 *rgb) {
 	//printf("stddev %g\n", stddev);
 	//printf("mean_nonzero_A %g\n", mean_nonzero_A);
 	//printf("root mean_sqr_nonzero_A %g\n", sqrt(mean_sqr_nonzero_A));
-  const double denominator = mean_nonzero_A*mean_nonzero_A/maxA;
+  const double factor = maxA/(mean_nonzero_A*mean_nonzero_A);
+  const double norm = 1.0/log(factor*maxA);
 	//denominator = 2*stddev*stddev/maxA
 	for (int ix=0; ix<size; ix++) {
     for (int iy=0; iy<size; iy++) {
@@ -202,7 +203,7 @@ void ReadHistogram(int size, int stride, HistogramEntry *hist, Uint32 *rgb) {
         // a(minA)*histA == 0
         // I wish that... a(maxA)*histA == 1 ... but it's not true
         // a(meanA)*histA == 0.5
-        const double a = log(hist[n].A/denominator)/log(maxA/denominator)/hist[n].A;
+        const double a = norm*log(factor*hist[n].A)/hist[n].A;
         //printf(ix, iy, a, hist[n].A)
         rgb[ix+stride*iy] = RGB(hist[n].R*a, hist[n].G*a, hist[n].B*a);
       } else {
