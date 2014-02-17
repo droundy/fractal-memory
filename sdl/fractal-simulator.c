@@ -99,6 +99,7 @@ static void TransformFlames(const Flames *t, Pt *p) {
 }
 
 void Compute(const Flames *f, int size, double quality, HistogramEntry *hist) {
+  int oldversion = f->version;
 	double hits = 0.0;
   double misses = 0.0;
   //printf("quality: %g\n", quality);
@@ -116,9 +117,10 @@ void Compute(const Flames *f, int size, double quality, HistogramEntry *hist) {
 		meanr += sqrt(p.X*p.X + p.Y*p.Y);
 	}
 	meanr /= 1000;
-	printf("meanr = %g\n", meanr);
+  //meanr = 2.0;
+	if (SDL_ASSERT_LEVEL > 2) printf("meanr = %g\n", meanr);
 
-	while (hits < wanthits) {
+	while (hits < wanthits && f->version == oldversion) {
 		TransformFlames(f, &p);
     const int xint = (p.X/meanr/2 + 1.0)*0.5*size + 0.5;
     const int yint = (p.Y/meanr/2 + 1.0)*0.5*size + 0.5;
@@ -129,6 +131,7 @@ void Compute(const Flames *f, int size, double quality, HistogramEntry *hist) {
 			hist[n].B += p.B;
 			hist[n].A += 1;
 			hits++;
+      dirty = 1;
 		} else {
 			misses++;
 		}
@@ -221,7 +224,6 @@ int DoCompute(void *computation) {
   //printf("size: %d\n", c->size);
   Compute(c->f, c->size, c->quality, c->hist);
   free(c);
-  printf("Completed computation!\n");
   return 0;
 }
 

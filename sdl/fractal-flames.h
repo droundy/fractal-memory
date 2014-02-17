@@ -3,6 +3,8 @@
 
 #include <SDL2/SDL.h>
 
+extern int dirty;
+
 typedef struct Pt {
 	double X, Y, R, G, B;
 } Pt;
@@ -44,7 +46,9 @@ typedef struct HistogramEntry {
 static const int num_trans = 4;
 typedef struct Flames {
 	Transformation Transformations[MAX_TRANS];
-  int N;
+  int N; // number of entries present in Transformations above
+  int version; // a number that will change when we modify the Flames,
+               // so a simulation thread can know when to stop.
 } Flames;
 
 void InitFlames(Flames *t);

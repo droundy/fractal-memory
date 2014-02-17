@@ -43,7 +43,6 @@ int InitSymmetry(Transformation *t) {
     R6
   };
   const int which = rand() % sizeof(Syms);
-  printf("Syms has size %ld\n", sizeof(Syms));
   t->Post.Mxx = 1;
   t->Post.Mxy = 0;
   t->Post.Myx = 0;
@@ -55,10 +54,11 @@ int InitSymmetry(Transformation *t) {
       y2 = rand() % (2*ran_max+1) - ran_max;
     } while (x2*x2 + y2*y2 > ran_max*ran_max || (x2 == 0 && y2 == 0));
     //x2 = 0; y2 = 0;
-    t->Pre.Ox = 0.8*x2/ran_max;
-    t->Pre.Oy = 0.8*y2/ran_max;
-    t->Post.Ox = -0.8*x2/ran_max;
-    t->Post.Oy = -0.8*y2/ran_max;
+    const double symm_offset_ratio = 1.8;
+    t->Pre.Ox = symm_offset_ratio*x2/ran_max;
+    t->Pre.Oy = symm_offset_ratio*y2/ran_max;
+    t->Post.Ox = -symm_offset_ratio*x2/ran_max;
+    t->Post.Oy = -symm_offset_ratio*y2/ran_max;
   }
   SDL_assert(!isnan(t->Pre.Ox));
   SDL_assert(!isnan(t->Pre.Oy));
@@ -66,17 +66,14 @@ int InitSymmetry(Transformation *t) {
   SDL_assert(!isnan(t->Post.Oy));
   t->R = t->G = t->B = t->A = 0.0; // No color change!
   t->Type = Syms[which];
-  fprintf(stderr, "Creating symmetry type %d\n", (int) t->Type);
   switch (t->Type) {
   case INVERSION:
-    printf("Creating inversion!\n");
     t->Pre.Mxx = -1;
     t->Pre.Mxy =  0;
     t->Pre.Myx =  0;
     t->Pre.Myy = -1;
     return 2;
   case MIRROR:
-    printf("Creating mirror!\n");
     {
       // pick a couple of points in the unit circle:
       double x, y;
@@ -92,35 +89,30 @@ int InitSymmetry(Transformation *t) {
       return 2;
     }
   case R2:
-    printf("Creating R2!\n");
     t->Pre.Mxx =  0;
     t->Pre.Mxy =  1;
     t->Pre.Myx = -1;
     t->Pre.Myy =  0;
     return 2;
   case R3:
-    printf("Creating R3!\n");
     t->Pre.Mxx =  cos(2*pi/3);
     t->Pre.Mxy =  sin(2*pi/3);
     t->Pre.Myx = -sin(2*pi/3);
     t->Pre.Myy =  cos(2*pi/3);;
     return 3;
   case R4:
-    printf("Creating R4!\n");
     t->Pre.Mxx =  cos(2*pi/4);
     t->Pre.Mxy =  sin(2*pi/4);
     t->Pre.Myx = -sin(2*pi/4);
     t->Pre.Myy =  cos(2*pi/4);;
     return 4;
   case R5:
-    printf("Creating R5!\n");
     t->Pre.Mxx =  cos(2*pi/5);
     t->Pre.Mxy =  sin(2*pi/5);
     t->Pre.Myx = -sin(2*pi/5);
     t->Pre.Myy =  cos(2*pi/5);;
     return 5;
   case R6:
-    printf("Creating R6!\n");
     t->Pre.Mxx =  cos(2*pi/6);
     t->Pre.Mxy =  sin(2*pi/6);
     t->Pre.Myx = -sin(2*pi/6);
@@ -130,7 +122,16 @@ int InitSymmetry(Transformation *t) {
   return 0;
 }
 
+static int max3(int a, int b, int c) {
+  if (a > b) {
+    return (a > c) ? a : c;
+  } else {
+    return (b > c) ? b : c;
+  }
+}
+
 void InitFlames(Flames *f) {
+  f->version = rand();
   f->N = num_trans;
   for (int i=0; i < f->N; i++) {
     InitAffine(&f->Transformations[i].Pre, 2);
@@ -154,32 +155,44 @@ void InitFlames(Flames *f) {
   f->Transformations[3].G = 0;
   f->Transformations[3].B = 1;
 
-  fprintf(stderr, "Without symmetry, total number is %d\n", f->N);
+  for (int i=0; i< num_trans; i++) {
+    int r = rand() % ran_max;
+    int g = rand() % ran_max;
+    int b = rand() % ran_max;
+    double m = max3(r,g,b);
+    f->Transformations[i].R = r / m;
+    f->Transformations[i].G = g / m;
+    f->Transformations[i].B = b / m;
+    f->Transformations[i].A = 0.5;
+  }
+
   // Now we add in the symmetry operations!
   if (f->N < MAX_TRANS/2) {
     int n = InitSymmetry(&f->Transformations[f->N]);
     if (n*f->N < MAX_TRANS && n > 0) {
       for (int i=f->N+1; i<n*f->N; i++) {
         f->Transformations[i] = f->Transformations[f->N];
-        fprintf(stderr, "Old type %d: %d\n", f->N, f->Transformations[f->N].Type);
-        fprintf(stderr, "New type %d: %d\n", i, f->Transformations[i].Type);
       }
-      fprintf(stderr, "Adding %d to %d\n", n, f->N);
       f->N = n*f->N;
     }
   }
+
   if (f->N < MAX_TRANS/2) {
     int n = InitSymmetry(&f->Transformations[f->N]);
     if (n*f->N < MAX_TRANS && n > 0) {
+      if (rand() & 1) {
+        // with 50% probability, put the second symmetry operation at
+        // the same origin as the first.
+        f->Transformations[f->N].Pre.Ox = f->Transformations[f->N-1].Pre.Ox;
+        f->Transformations[f->N].Pre.Oy = f->Transformations[f->N-1].Pre.Oy;
+        f->Transformations[f->N].Post.Ox = f->Transformations[f->N-1].Post.Ox;
+        f->Transformations[f->N].Post.Oy = f->Transformations[f->N-1].Post.Oy;
+      }
       for (int i=f->N+1; i<n*f->N; i++) {
         f->Transformations[i] = f->Transformations[f->N];
-        fprintf(stderr, "Old type %d: %d\n", f->N, f->Transformations[f->N].Type);
-        fprintf(stderr, "New type %d: %d\n", i, f->Transformations[i].Type);
       }
-      fprintf(stderr, "Adding %d to %d\n", n, f->N);
       f->N = n*f->N;
     }
   }
-  fprintf("Total number is %d\n", f->N);
-  PrintFlames(f);
+  if (SDL_ASSERT_LEVEL > 2) PrintFlames(f);
 }

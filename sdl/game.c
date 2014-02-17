@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+int dirty = 1;
+
 int main(int argc, char *argv[]) {
   SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
   SDL_Window *sdlWindow;
@@ -24,7 +26,7 @@ int main(int argc, char *argv[]) {
 
   int width, height;
   SDL_GetWindowSize(sdlWindow, &width, &height);
-  printf("Size: %d, %d\n", width, height);
+  if (SDL_ASSERT_LEVEL > 2) printf("Size: %d, %d\n", width, height);
   SDL_Texture *sdlTexture = SDL_CreateTexture(sdlRenderer,
                                               SDL_PIXELFORMAT_ARGB8888,
                                               SDL_TEXTUREACCESS_STREAMING,
@@ -59,7 +61,8 @@ int main(int argc, char *argv[]) {
   /* While the program is running */
   while (!quit) {
     int now = SDL_GetTicks();
-    if (now >= next_frame) {
+    if (now >= next_frame && dirty) {
+      dirty = 0; // so we can avoid redrawing this.
       // update window graphics
       for (int i=0; i<width*height; i++) {
         myPixels[i] = 0xFFFF0000 + ((now/frame_time+i) % 256) + 256*((now/frame_time + i)/4 % 256);
@@ -112,6 +115,9 @@ int main(int argc, char *argv[]) {
         }
       }
     }
+  }
+  for (int i=0;i<4;i++) {
+    InitFlames(&f[i]); // this triggers compute threads to stop.
   }
   return 0;
 }
