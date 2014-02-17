@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 
   Flames f[4];
   const int size = height*7/16;
-  const double quality = 3.0;
+  const double quality = 2.5;
   HistogramEntry *hist[4];
   for (int i=0;i<4;i++) {
     InitFlames(&f[i]);

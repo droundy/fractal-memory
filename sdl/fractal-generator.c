@@ -104,28 +104,28 @@ int InitSymmetry(Transformation *t) {
     t->Pre.Mxy =  sin(2*pi/3);
     t->Pre.Myx = -sin(2*pi/3);
     t->Pre.Myy =  cos(2*pi/3);;
-    return 4;
+    return 3;
   case R4:
     printf("Creating R4!\n");
     t->Pre.Mxx =  cos(2*pi/4);
     t->Pre.Mxy =  sin(2*pi/4);
     t->Pre.Myx = -sin(2*pi/4);
     t->Pre.Myy =  cos(2*pi/4);;
-    return 8;
+    return 4;
   case R5:
     printf("Creating R5!\n");
     t->Pre.Mxx =  cos(2*pi/5);
     t->Pre.Mxy =  sin(2*pi/5);
     t->Pre.Myx = -sin(2*pi/5);
     t->Pre.Myy =  cos(2*pi/5);;
-    return 10;
+    return 5;
   case R6:
     printf("Creating R6!\n");
     t->Pre.Mxx =  cos(2*pi/6);
     t->Pre.Mxy =  sin(2*pi/6);
     t->Pre.Myx = -sin(2*pi/6);
     t->Pre.Myy =  cos(2*pi/6);;
-    return 12;
+    return 6;
   }
   return 0;
 }
@@ -156,16 +156,28 @@ void InitFlames(Flames *f) {
 
   fprintf(stderr, "Without symmetry, total number is %d\n", f->N);
   // Now we add in the symmetry operations!
-  if (f->N < MAX_TRANS) {
+  if (f->N < MAX_TRANS/2) {
     int n = InitSymmetry(&f->Transformations[f->N]);
-    if (n*f->N < MAX_TRANS) {
-      for (int i=1; i<(n-1)*f->N; i++) {
-        f->Transformations[f->N + i] = f->Transformations[f->N];
+    if (n*f->N < MAX_TRANS && n > 0) {
+      for (int i=f->N+1; i<n*f->N; i++) {
+        f->Transformations[i] = f->Transformations[f->N];
         fprintf(stderr, "Old type %d: %d\n", f->N, f->Transformations[f->N].Type);
-        fprintf(stderr, "New type %d: %d\n", f->N+i, f->Transformations[f->N+i].Type);
+        fprintf(stderr, "New type %d: %d\n", i, f->Transformations[i].Type);
       }
       fprintf(stderr, "Adding %d to %d\n", n, f->N);
-      f->N += n;
+      f->N = n*f->N;
+    }
+  }
+  if (f->N < MAX_TRANS/2) {
+    int n = InitSymmetry(&f->Transformations[f->N]);
+    if (n*f->N < MAX_TRANS && n > 0) {
+      for (int i=f->N+1; i<n*f->N; i++) {
+        f->Transformations[i] = f->Transformations[f->N];
+        fprintf(stderr, "Old type %d: %d\n", f->N, f->Transformations[f->N].Type);
+        fprintf(stderr, "New type %d: %d\n", i, f->Transformations[i].Type);
+      }
+      fprintf(stderr, "Adding %d to %d\n", n, f->N);
+      f->N = n*f->N;
     }
   }
   fprintf("Total number is %d\n", f->N);

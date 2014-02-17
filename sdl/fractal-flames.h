@@ -40,7 +40,7 @@ typedef struct HistogramEntry {
   double R, G, B, A;
 } HistogramEntry;
 
-#define MAX_TRANS 60
+#define MAX_TRANS 25
 static const int num_trans = 4;
 typedef struct Flames {
 	Transformation Transformations[MAX_TRANS];
