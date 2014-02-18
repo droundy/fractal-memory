@@ -7,7 +7,9 @@
 static const double pi = 3.1415926535897932384626433832795028841971L;
 
 static void AffineTransform(const AffineTransformation *i, Pt *p) {
-  if (isnan(i->Ox*i->Oy)) printf("%g %g\n", i->Ox, i->Oy);
+  if (isnan(i->Ox*i->Oy)) {
+    printf("%g %g\n", i->Ox, i->Oy);
+  }
   SDL_assert(!isnan(i->Mxx));
   SDL_assert(!isnan(i->Mxy));
   SDL_assert(!isnan(i->Myx));

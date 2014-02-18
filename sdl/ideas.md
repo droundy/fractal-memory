@@ -17,7 +17,8 @@ Questions:
 
 - If we fix the colors, how hard is it to distinguish different shapes?
 
-- If the picture is monochrome, how hard is it to distinguish different shapes?
+- If the picture is monochrome (either all white, or all shades of
+  gray), how hard is it to distinguish different shapes?
 
 - If we fix the shape, how hard is it to distinguish different colors?
   How does this difficulty depend on details of the fractal? i.e. can
