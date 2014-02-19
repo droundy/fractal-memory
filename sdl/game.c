@@ -5,6 +5,10 @@
 
 int dirty = 1;
 
+static int min(int a, int b) {
+  return (a<b) ? a : b;
+}
+
 int main(int argc, char *argv[]) {
   SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
   SDL_Window *sdlWindow;
@@ -45,11 +49,12 @@ int main(int argc, char *argv[]) {
   /* A bool to check if the program has exited */
   int quit = 0;
 
-  Flames f[4];
-  const int size = height*7/16;
-  const double quality = 2.5;
-  HistogramEntry *hist[4];
-  for (int i=0;i<4;i++) {
+  Flames f[6];
+  const int size = min(height/2, width/3)*60/100;
+  const int border = size*20/100;
+  const double quality = 3.0;
+  HistogramEntry *hist[6];
+  for (int i=0;i<6;i++) {
     InitFlames(&f[i]);
     hist[i] = (HistogramEntry *)calloc(size*size, sizeof(HistogramEntry));
     ComputeInThread(&f[i], size, quality, hist[i]);
@@ -67,10 +72,13 @@ int main(int argc, char *argv[]) {
       for (int i=0; i<width*height; i++) {
         myPixels[i] = 0xFFFF0000 + ((now/frame_time+i) % 256) + 256*((now/frame_time + i)/4 % 256);
       }
-      ReadHistogram(size, width, hist[0], myPixels);
-      ReadHistogram(size, width, hist[1], myPixels+width/2);
-      ReadHistogram(size, width, hist[2], myPixels+height/2*width);
-      ReadHistogram(size, width, hist[3], myPixels+height/2*width + width/2);
+      const int borders = border + border*width;
+      ReadHistogram(size, width, hist[0], myPixels + borders);
+      ReadHistogram(size, width, hist[1], myPixels+width/3 + borders);
+      ReadHistogram(size, width, hist[2], myPixels+width/3*2 + borders);
+      ReadHistogram(size, width, hist[3], myPixels+height/2*width + borders);
+      ReadHistogram(size, width, hist[4], myPixels+height/2*width + width/3 + borders);
+      ReadHistogram(size, width, hist[5], myPixels+height/2*width + width/3*2 + borders);
 
       SDL_UpdateTexture(sdlTexture, NULL, myPixels, width * sizeof (Uint32));
 
@@ -93,12 +101,12 @@ int main(int argc, char *argv[]) {
           quit = 1;
           break;
         case SDLK_z:
-          for (int i=0;i<4;i++) {
+          for (int i=0;i<6;i++) {
             bzero(hist[i], size*size*sizeof(HistogramEntry));
           }
           break;
         case SDLK_s:
-          for (int i=0;i<4;i++) {
+          for (int i=0;i<6;i++) {
             InitFlames(&f[i]);
             bzero(hist[i], size*size*sizeof(HistogramEntry));
             ComputeInThread(&f[i], size, quality, hist[i]);
@@ -116,7 +124,7 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  for (int i=0;i<4;i++) {
+  for (int i=0;i<6;i++) {
     InitFlames(&f[i]); // this triggers compute threads to stop.
   }
   return 0;

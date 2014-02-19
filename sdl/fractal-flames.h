@@ -20,12 +20,21 @@ typedef struct Transformation {
 } Transformation;
 
 enum {
+  // see https://code.google.com/p/flam3/wiki/Variations
   SWIRL,
   HORSESHOE,
   SINUSOIDAL,
   POLAR,
-  CIRCLE,
-  //SMEAR,
+  HANDKERCHIEF,
+  HEART,
+  DISC,
+  SPIRAL,
+  HYPERBOLIC,
+  DIAMOND,
+  EX,
+  // skip julia due to randomness
+  BENT,
+  FISHEYE,
   SPHERICAL,
   IDENTITY,
   MIRROR,

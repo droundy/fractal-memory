@@ -24,6 +24,8 @@ static void AffineTransform(const AffineTransformation *i, Pt *p) {
   SDL_assert(!isnan(p->Y));
 }
 
+static const double EPS = 1e-15;
+
 static void Transform(const Transformation *t, Pt *p) {
   SDL_assert(!isnan(p->X));
   SDL_assert(!isnan(p->Y));
@@ -37,8 +39,8 @@ static void Transform(const Transformation *t, Pt *p) {
   switch (t->Type) {
 	case HORSESHOE :
     {
-      double oX = (p->X - p->Y)*(p->X + p->Y)/(1+r);
-      double oY = 2*p->X*p->Y/(1+r);
+      double oX = (p->X - p->Y)*(p->X + p->Y)/(EPS+r);
+      double oY = 2*p->X*p->Y/(EPS+r);
       p->X = oX;
       p->Y = oY;
     }
@@ -59,8 +61,8 @@ static void Transform(const Transformation *t, Pt *p) {
     break;
 	case SPHERICAL:
 		if (r2 != 0) {
-      p->X /= 1 + r2;
-      p->Y /= 1 + r2;
+      p->X /= 1e-6 + r2;
+      p->Y /= 1e-6 + r2;
 		}
     SDL_assert(!isnan(p->X));
     SDL_assert(!isnan(p->Y));
@@ -77,20 +79,71 @@ static void Transform(const Transformation *t, Pt *p) {
     SDL_assert(!isnan(p->X));
     SDL_assert(!isnan(p->Y));
     break;
-	case CIRCLE:
-		p->X = r*sin(r+theta);
-		p->Y = r*cos(r+theta);
+	case HANDKERCHIEF:
+		p->X = r*sin(theta+r);
+		p->Y = r*cos(theta-r);
     SDL_assert(!isnan(p->X));
     SDL_assert(!isnan(p->Y));
     break;
-	/* case SMEAR: */
-  /*   { */
-  /*     const double dx = 0.1*sin(p->Y); */
-  /*     const double dy = 0.1*sin(p->X); */
-  /*     p->X += dx; */
-  /*     p->Y += dy; */
-  /*   } */
-  /*   break; */
+	case HEART:
+		p->X =  r*sin(theta*r);
+		p->Y = -r*cos(theta*r);
+    SDL_assert(!isnan(p->X));
+    SDL_assert(!isnan(p->Y));
+    break;
+	case DISC:
+		p->X = theta/pi*sin(pi*r);
+		p->Y = theta/pi*cos(pi*r);
+    SDL_assert(!isnan(p->X));
+    SDL_assert(!isnan(p->Y));
+    break;
+	case SPIRAL:
+    p->X = (cos(theta) + sin(r2+1e-6))/(r2+1e-6);
+    p->Y = (sin(theta) - cos(r2+1e-6))/(r2+1e-6);
+    SDL_assert(!isnan(p->X));
+    SDL_assert(!isnan(p->Y));
+    break;
+  case HYPERBOLIC:
+    p->X = sin(theta) / (r + 1e-6);
+    p->Y = cos(theta) * (r + 1e-6);
+    SDL_assert(!isnan(p->X));
+    SDL_assert(!isnan(p->Y));
+    break;
+  case DIAMOND:
+    p->X = sin(theta) * cos(r);
+    p->Y = cos(theta) * sin(r);
+    SDL_assert(!isnan(p->X));
+    SDL_assert(!isnan(p->Y));
+    break;
+  case EX:
+    {
+      const double n0 = sin(theta+r);
+      const double n1 = cos(theta-r);
+      const double m0 = r * n0*n0*n0;
+      const double m1 = r * n1*n1*n1;
+      p->X = m0 + m1;
+      p->Y = m0 - m1;
+    }
+    SDL_assert(!isnan(p->X));
+    SDL_assert(!isnan(p->Y));
+    break;
+  case BENT:
+    if (p->X < 0) p->X *= 2;
+    if (p->Y < 0) p->Y /= 2;
+    SDL_assert(!isnan(p->X));
+    SDL_assert(!isnan(p->Y));
+    break;
+  case FISHEYE:
+    {
+      const double x = p->X;
+      const double y = p->Y;
+      const double k = 2/(r+1);
+      p->X = k*y;
+      p->Y = k*x;
+    }
+    SDL_assert(!isnan(p->X));
+    SDL_assert(!isnan(p->Y));
+    break;
 	}
 	AffineTransform(&t->Post, p);
 }
@@ -114,12 +167,12 @@ void Compute(const Flames *f, int size, double quality, HistogramEntry *hist) {
 	}
 
 	double meanr = 0.0;
-	for (int i = 0; i<1000; i++) {
+	for (int i = 0; i<10000; i++) {
 		TransformFlames(f, &p);
 		meanr += sqrt(p.X*p.X + p.Y*p.Y);
 	}
-	meanr /= 1000;
-  //meanr = 2.0;
+	meanr /= 10000;
+  //if (meanr > 20) meanr = 20;
 	if (SDL_ASSERT_LEVEL > 2) printf("meanr = %g\n", meanr);
 
 	while (hits < wanthits && f->version == oldversion) {
