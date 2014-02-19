@@ -14,7 +14,7 @@ typedef struct AffineTransformation {
 } AffineTransformation;
 
 typedef struct Transformation {
-	char Type;
+	char Type[3], NTypes;
 	double R, G, B, A;
 	AffineTransformation Pre, Post;
 } Transformation;
@@ -45,6 +45,35 @@ enum {
   R5,
   R6
 };
+
+static inline const char *show_type(char type) {
+  switch (type) {
+  case SWIRL: return "swirl";
+  case HORSESHOE: return "horseshoe";
+  case SINUSOIDAL: return "sinusoidal";
+  case POLAR: return "polar";
+  case HANDKERCHIEF: return "handkerchief";
+  case HEART: return "heart";
+  case DISC: return "disc";
+  case SPIRAL: return "spiral";
+  case HYPERBOLIC: return "hyperbolic";
+  case DIAMOND: return "diamone";
+  case EX: return "ex";
+  // skip julia due to randomness
+  case BENT: return "bent";
+  case FISHEYE: return "fisheye";
+  case SPHERICAL: return "spherical";
+  case IDENTITY: return "identity";
+  case MIRROR: return "mirror";
+  case INVERSION: return "inversion";
+  case R2: return "R2";
+  case R3: return "R3";
+  case R4: return "R4";
+  case R5: return "R5";
+  case R6: return "R6";
+  default: return "ERROR!";
+  }
+}
 
 
 typedef struct HistogramEntry {

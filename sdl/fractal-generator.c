@@ -65,8 +65,9 @@ int InitSymmetry(Transformation *t) {
   SDL_assert(!isnan(t->Post.Ox));
   SDL_assert(!isnan(t->Post.Oy));
   t->R = t->G = t->B = t->A = 0.0; // No color change!
-  t->Type = Syms[which];
-  switch (t->Type) {
+  t->NTypes = 0;
+  t->Type[0] = Syms[which];
+  switch (t->Type[0]) {
   case INVERSION:
     t->Pre.Mxx = -1;
     t->Pre.Mxy =  0;
@@ -136,7 +137,10 @@ void InitFlames(Flames *f) {
   for (int i=0; i < f->N; i++) {
     InitAffine(&f->Transformations[i].Pre, 2);
     InitAffine(&f->Transformations[i].Post, 2);
-    f->Transformations[i].Type = rand() % IDENTITY;
+    f->Transformations[i].Type[0] = rand() % IDENTITY;
+    f->Transformations[i].Type[1] = rand() % IDENTITY;
+    f->Transformations[i].Type[2] = rand() % IDENTITY;
+    f->Transformations[i].NTypes = 1 + rand() % 3;
     f->Transformations[i].A = 0.5;
   }
   f->Transformations[0].R = 1;

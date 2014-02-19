@@ -7,7 +7,11 @@ void PrintAffine(AffineTransformation *t) {
 }
 
 void PrintTransform(Transformation *t, int i) {
-  fprintf(stderr, "[%2d] Transform (type %d):\n", i, (int)t->Type);
+  fprintf(stderr, "[%2d] Transform (types", i);
+  for (int i=0;i<t->NTypes;i++) {
+    fprintf(stderr, " %2d", (int)t->Type[i]);
+  }
+  fprintf(stderr, "):\n");
   PrintAffine(&t->Pre);
   fprintf(stderr, "RGBA: ( %10g %10g %10g %10g )\n", t->R, t->G, t->B, t->A);
   PrintAffine(&t->Post);
