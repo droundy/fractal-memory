@@ -40,7 +40,11 @@ int InitSymmetry(Transformation *t) {
     R3,
     R4,
     R5,
-    R6
+    R6,
+    D3,
+    D4,
+    D5,
+    D6
   };
   const int which = rand() % sizeof(Syms);
   t->Post.Mxx = 1;
@@ -119,6 +123,30 @@ int InitSymmetry(Transformation *t) {
     t->Pre.Myx = -sin(2*pi/6);
     t->Pre.Myy =  cos(2*pi/6);;
     return 6;
+  case D3:
+    t->Pre.Mxx =  cos(2*pi/3);
+    t->Pre.Mxy =  sin(2*pi/3);
+    t->Pre.Myx = -sin(2*pi/3);
+    t->Pre.Myy =  cos(2*pi/3);;
+    return 6;
+  case D4:
+    t->Pre.Mxx =  cos(2*pi/4);
+    t->Pre.Mxy =  sin(2*pi/4);
+    t->Pre.Myx = -sin(2*pi/4);
+    t->Pre.Myy =  cos(2*pi/4);;
+    return 8;
+  case D5:
+    t->Pre.Mxx =  cos(2*pi/5);
+    t->Pre.Mxy =  sin(2*pi/5);
+    t->Pre.Myx = -sin(2*pi/5);
+    t->Pre.Myy =  cos(2*pi/5);;
+    return 10;
+  case D6:
+    t->Pre.Mxx =  cos(2*pi/6);
+    t->Pre.Mxy =  sin(2*pi/6);
+    t->Pre.Myx = -sin(2*pi/6);
+    t->Pre.Myy =  cos(2*pi/6);;
+    return 12;
   }
   return 0;
 }
@@ -176,6 +204,29 @@ void InitFlames(Flames *f) {
     if (n*f->N < MAX_TRANS && n > 0) {
       for (int i=f->N+1; i<n*f->N; i++) {
         f->Transformations[i] = f->Transformations[f->N];
+      }
+      if (f->Transformations[f->N].Type[0] >= D3) {
+        fprintf(stderr, "Symmetry %s %d > %d %s\n",
+                show_type(f->Transformations[f->N].Type[0]),
+                (int)f->Transformations[f->N].Type[0],
+                (int)D3, show_type(D3));
+        PrintTransform(&f->Transformations[f->N], 0);
+        // These symmetries have a mirror plane (with same center of symmetry)
+        while (f->Transformations[f->N+n/2].Type[0] != MIRROR) {
+          InitSymmetry(&f->Transformations[f->N+n/2]);
+          //fprintf(stderr, "type %s (i.e. %d)\n", show_type(f->Transformations[f->N+n/2].Type[0]),
+          //        (int)f->Transformations[f->N+n/2].Type[0]);
+          //PrintTransform(&f->Transformations[f->N+n/2]);
+        }
+        //fprintf(stderr, "******** GOT ONE! *********\n");
+        // Set the center of symmetry of the mirror plane to be the same...
+        f->Transformations[f->N+n/2].Pre.Ox = f->Transformations[f->N].Pre.Ox;
+        f->Transformations[f->N+n/2].Pre.Oy = f->Transformations[f->N].Pre.Oy;
+        f->Transformations[f->N+n/2].Post.Ox = f->Transformations[f->N].Post.Ox;
+        f->Transformations[f->N+n/2].Post.Oy = f->Transformations[f->N].Post.Oy;
+        for (int i=f->N+n/2+1; i<n*f->N; i++) {
+          f->Transformations[i] = f->Transformations[f->N+n/2];
+        }
       }
       f->N = n*f->N;
     }
