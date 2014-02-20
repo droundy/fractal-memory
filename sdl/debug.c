@@ -8,8 +8,12 @@ void PrintAffine(AffineTransformation *t) {
 
 void PrintTransform(Transformation *t, int i) {
   fprintf(stderr, "[%2d] Transform (types", i);
-  for (int i=0;i<t->NTypes;i++) {
-    fprintf(stderr, " %2d", (int)t->Type[i]);
+  if (t->NTypes == 0) {
+    fprintf(stderr, " symmetry %s", show_type(t->Type[0]));
+  } else {
+    for (int i=0;i<t->NTypes;i++) {
+      fprintf(stderr, " %s", show_type(t->Type[i]));
+    }
   }
   fprintf(stderr, "):\n");
   PrintAffine(&t->Pre);
