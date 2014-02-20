@@ -2,6 +2,8 @@
 #pragma once
 
 #include <SDL2/SDL.h>
+#include "secure-random.h"
+#include "quick-random.h"
 
 extern int dirty;
 
@@ -95,10 +97,13 @@ typedef struct Flames {
   int N; // number of entries present in Transformations above
   int version; // a number that will change when we modify the Flames,
                // so a simulation thread can know when to stop.
+  QuickRandom r;
+  SDL_Thread *renderthread;
 } Flames;
 
-void InitFlames(Flames *t);
-void ComputeInThread(const Flames *f, int size, double quality, HistogramEntry *hist);
+// WARNING: the Flames content must be zeroed before calling InitFlames!
+void InitFlames(Flames *t, SecureRandom *s);
+void ComputeInThread(Flames *f, int size, double quality, HistogramEntry *hist);
 void ReadHistogram(int size, int stride, HistogramEntry *hist, Uint32 *rgb);
 
 

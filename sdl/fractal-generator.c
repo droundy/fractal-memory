@@ -4,19 +4,19 @@
 const int ran_max = 256;
 static const double pi = 3.1415926535897932384626433832795028841971L;
 
-void InitAffine(AffineTransformation *t, int minfraction) {
+void InitAffine(AffineTransformation *t, int minfraction, SecureRandom *s) {
   int Mxx , Myy, Mxy, Myx, Mlensqr, Oxsqr, Oysqr;
   do {
-    Mxx = rand() % (2*ran_max+1) - ran_max;
-    Mxy = rand() % (2*ran_max+1) - ran_max;
-    Myx = rand() % (2*ran_max+1) - ran_max;
-    Myy = rand() % (2*ran_max+1) - ran_max;
+    Mxx = secure_random32(s) % (2*ran_max+1) - ran_max;
+    Mxy = secure_random32(s) % (2*ran_max+1) - ran_max;
+    Myx = secure_random32(s) % (2*ran_max+1) - ran_max;
+    Myy = secure_random32(s) % (2*ran_max+1) - ran_max;
     Mlensqr = abs(Mxx*Myy - Mxy*Myx);
   } while (Mlensqr < ran_max*ran_max/minfraction || Mlensqr > ran_max*ran_max*7/10);
 
   const int osqr_max = 1*(ran_max*ran_max - Mlensqr);
-  Oxsqr = (rand() % (2*osqr_max+1)) - osqr_max;
-  Oysqr = (rand() % (2*osqr_max+1)) - osqr_max;
+  Oxsqr = (secure_random32(s) % (2*osqr_max+1)) - osqr_max;
+  Oysqr = (secure_random32(s) % (2*osqr_max+1)) - osqr_max;
 
   double scale = 1.0/ran_max;
   t->Mxx = Mxx*scale;
@@ -31,7 +31,7 @@ void InitAffine(AffineTransformation *t, int minfraction) {
   SDL_assert(!isnan(t->Oy));
 }
 
-int InitSymmetry(Transformation *t) {
+int InitSymmetry(Transformation *t, SecureRandom *s) {
   const unsigned char Syms[] = {
     IDENTITY,
     MIRROR,
@@ -46,7 +46,7 @@ int InitSymmetry(Transformation *t) {
     D5,
     D6
   };
-  const int which = rand() % sizeof(Syms);
+  const int which = secure_random32(s) % sizeof(Syms);
   t->Post.Mxx = 1;
   t->Post.Mxy = 0;
   t->Post.Myx = 0;
@@ -54,8 +54,8 @@ int InitSymmetry(Transformation *t) {
   {
     double x2, y2;
     do {
-      x2 = rand() % (2*ran_max+1) - ran_max;
-      y2 = rand() % (2*ran_max+1) - ran_max;
+      x2 = secure_random32(s) % (2*ran_max+1) - ran_max;
+      y2 = secure_random32(s) % (2*ran_max+1) - ran_max;
     } while (x2*x2 + y2*y2 > ran_max*ran_max || (x2 == 0 && y2 == 0));
     //x2 = 0; y2 = 0;
     const double symm_offset_ratio = 1.8;
@@ -83,8 +83,8 @@ int InitSymmetry(Transformation *t) {
       // pick a couple of points in the unit circle:
       double x, y;
       do {
-        x = rand() % (2*ran_max+1) - ran_max;
-        y = rand() % (2*ran_max+1) - ran_max;
+        x = secure_random32(s) % (2*ran_max+1) - ran_max;
+        y = secure_random32(s) % (2*ran_max+1) - ran_max;
       } while (x*x + y*y > ran_max*ran_max || (x == 0 && y == 0));
       double norm = 1.0/sqrt(x*x + y*y);
       t->Pre.Mxx =  x*norm;
@@ -159,16 +159,20 @@ static int max3(int a, int b, int c) {
   }
 }
 
-void InitFlames(Flames *f) {
-  f->version = rand();
+void InitFlames(Flames *f, SecureRandom *s) {
+  f->version = 0;
+  if (f->renderthread) SDL_WaitThread(f->renderthread, NULL);
+  bzero(f, sizeof(Flames)); // first zero out whatever was previously there...
+  f->version = secure_random32(s);
+  init_quick(&f->r); // initialize the random number generator for the simulator
   f->N = num_trans;
   for (int i=0; i < f->N; i++) {
-    InitAffine(&f->Transformations[i].Pre, 2);
-    InitAffine(&f->Transformations[i].Post, 2);
-    f->Transformations[i].Type[0] = rand() % IDENTITY;
-    f->Transformations[i].Type[1] = rand() % IDENTITY;
-    f->Transformations[i].Type[2] = rand() % IDENTITY;
-    f->Transformations[i].NTypes = 1 + rand() % 3;
+    InitAffine(&f->Transformations[i].Pre, 2, s);
+    InitAffine(&f->Transformations[i].Post, 2, s);
+    f->Transformations[i].Type[0] = secure_random32(s) % IDENTITY;
+    f->Transformations[i].Type[1] = secure_random32(s) % IDENTITY;
+    f->Transformations[i].Type[2] = secure_random32(s) % IDENTITY;
+    f->Transformations[i].NTypes = 1 + secure_random32(s) % 3;
     f->Transformations[i].A = 0.5;
   }
   f->Transformations[0].R = 1;
@@ -188,9 +192,9 @@ void InitFlames(Flames *f) {
   f->Transformations[3].B = 1;
 
   for (int i=0; i< num_trans; i++) {
-    int r = rand() % ran_max;
-    int g = rand() % ran_max;
-    int b = rand() % ran_max;
+    int r = secure_random32(s) % ran_max;
+    int g = secure_random32(s) % ran_max;
+    int b = secure_random32(s) % ran_max;
     double m = max3(r,g,b);
     f->Transformations[i].R = r / m;
     f->Transformations[i].G = g / m;
@@ -200,20 +204,16 @@ void InitFlames(Flames *f) {
 
   // Now we add in the symmetry operations!
   if (f->N < MAX_TRANS/2) {
-    int n = InitSymmetry(&f->Transformations[f->N]);
+    int n = InitSymmetry(&f->Transformations[f->N], s);
     if (n*f->N < MAX_TRANS && n > 0) {
       for (int i=f->N+1; i<n*f->N; i++) {
         f->Transformations[i] = f->Transformations[f->N];
       }
       if (f->Transformations[f->N].Type[0] >= D3) {
-        fprintf(stderr, "Symmetry %s %d > %d %s\n",
-                show_type(f->Transformations[f->N].Type[0]),
-                (int)f->Transformations[f->N].Type[0],
-                (int)D3, show_type(D3));
-        PrintTransform(&f->Transformations[f->N], 0);
+        //PrintTransform(&f->Transformations[f->N], 0);
         // These symmetries have a mirror plane (with same center of symmetry)
         while (f->Transformations[f->N+n/2].Type[0] != MIRROR) {
-          InitSymmetry(&f->Transformations[f->N+n/2]);
+          InitSymmetry(&f->Transformations[f->N+n/2], s);
           //fprintf(stderr, "type %s (i.e. %d)\n", show_type(f->Transformations[f->N+n/2].Type[0]),
           //        (int)f->Transformations[f->N+n/2].Type[0]);
           //PrintTransform(&f->Transformations[f->N+n/2]);
@@ -233,9 +233,9 @@ void InitFlames(Flames *f) {
   }
 
   if (f->N < MAX_TRANS/2) {
-    int n = InitSymmetry(&f->Transformations[f->N]);
+    int n = InitSymmetry(&f->Transformations[f->N], s);
     if (n*f->N < MAX_TRANS && n > 0) {
-      if (rand() & 1) {
+      if (secure_random(s) & 1) {
         // with 50% probability, put the second symmetry operation at
         // the same origin as the first.
         f->Transformations[f->N].Pre.Ox = f->Transformations[f->N-1].Pre.Ox;

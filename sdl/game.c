@@ -2,6 +2,7 @@
 #include "fractal-flames.h"
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 int dirty = 1;
 
@@ -10,6 +11,8 @@ static int min(int a, int b) {
 }
 
 int main(int argc, char *argv[]) {
+  int flame_number = 0;
+
   SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
   SDL_Window *sdlWindow;
   SDL_Renderer *sdlRenderer;
@@ -50,12 +53,15 @@ int main(int argc, char *argv[]) {
   int quit = 0;
 
   Flames f[6];
+  bzero(f, 6*sizeof(Flames));
   const int size = min(height/2, width/3)*60/100;
   const int border = size*20/100;
   const double quality = 3.0;
   HistogramEntry *hist[6];
   for (int i=0;i<6;i++) {
-    InitFlames(&f[i]);
+    SecureRandom s;
+    init_secure_random_from_int(&s, flame_number++);
+    InitFlames(&f[i], &s);
     hist[i] = (HistogramEntry *)calloc(size*size, sizeof(HistogramEntry));
     ComputeInThread(&f[i], size, quality, hist[i]);
   }
@@ -107,7 +113,9 @@ int main(int argc, char *argv[]) {
           break;
         case SDLK_s:
           for (int i=0;i<6;i++) {
-            InitFlames(&f[i]);
+            SecureRandom s;
+            init_secure_random_from_int(&s, flame_number++);
+            InitFlames(&f[i], &s);
             bzero(hist[i], size*size*sizeof(HistogramEntry));
             ComputeInThread(&f[i], size, quality, hist[i]);
           }
@@ -125,7 +133,11 @@ int main(int argc, char *argv[]) {
     }
   }
   for (int i=0;i<6;i++) {
-    InitFlames(&f[i]); // this triggers compute threads to stop.
+    SecureRandom s;
+    init_secure_random_from_int(&s, flame_number++);
+    InitFlames(&f[i], &s);
+    // this triggers compute threads to stop.
   }
+  sleep(0); // give up the CPU just a moment so our threads can actually stop.  (hokey!)
   return 0;
 }

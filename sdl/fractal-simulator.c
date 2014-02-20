@@ -163,7 +163,7 @@ static void Transform(const Transformation *t, Pt *p) {
 }
 
 static void TransformFlames(const Flames *t, Pt *p) {
-  const int which = rand() % t->N;
+  const int which = quickrand32(&t->r) % t->N;
   Transform(&t->Transformations[which], p);
 }
 
@@ -320,7 +320,7 @@ int DoCompute(void *computation) {
   return 0;
 }
 
-void ComputeInThread(const Flames *f, int size, double quality, HistogramEntry *hist) {
+void ComputeInThread(Flames *f, int size, double quality, HistogramEntry *hist) {
   struct Computation *c = (struct Computation *) malloc(sizeof(struct Computation));
   c->f = f;
   c->size = size;
@@ -329,8 +329,8 @@ void ComputeInThread(const Flames *f, int size, double quality, HistogramEntry *
   //printf("size: %d\n", size);
   //DoCompute(c);
   //exit(1);
-  SDL_Thread *thread = SDL_CreateThread(DoCompute, "Compute", (void *)c);
-  if (!thread) {
+  f->renderthread = SDL_CreateThread(DoCompute, "Compute", (void *)c);
+  if (!f->renderthread) {
     printf("\nSDL_CreateThread failed: %s\n", SDL_GetError());
   }
 }
