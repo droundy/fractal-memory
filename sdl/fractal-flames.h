@@ -21,7 +21,7 @@ typedef struct Transformation {
 
 enum {
   // see https://code.google.com/p/flam3/wiki/Variations
-  SWIRL,
+  SWIRL = 0,
   HORSESHOE,
   SINUSOIDAL,
   POLAR,
@@ -43,7 +43,11 @@ enum {
   R3,
   R4,
   R5,
-  R6
+  R6,
+  D3,
+  D4,
+  D5,
+  D6
 };
 
 static inline const char *show_type(char type) {
@@ -71,6 +75,10 @@ static inline const char *show_type(char type) {
   case R4: return "R4";
   case R5: return "R5";
   case R6: return "R6";
+  case D3: return "D3";
+  case D4: return "D4";
+  case D5: return "D5";
+  case D6: return "D6";
   default: return "ERROR!";
   }
 }
@@ -80,7 +88,7 @@ typedef struct HistogramEntry {
   double R, G, B, A;
 } HistogramEntry;
 
-#define MAX_TRANS 25
+#define MAX_TRANS 33
 static const int num_trans = 4;
 typedef struct Flames {
 	Transformation Transformations[MAX_TRANS];
@@ -94,4 +102,6 @@ void ComputeInThread(const Flames *f, int size, double quality, HistogramEntry *
 void ReadHistogram(int size, int stride, HistogramEntry *hist, Uint32 *rgb);
 
 
+void PrintAffine(AffineTransformation *t);
+void PrintTransform(Transformation *t, int i);
 void PrintFlames(Flames *f);
