@@ -29,6 +29,9 @@
 #ifndef _SHA512_H
 #define _SHA512_H
 
+/* The following is a very hokey way to configure this... (by DJR) */
+#define HAVE_INTTYPES_H 1
+
 #if HAVE_INTTYPES_H
 # include <inttypes.h>
 #else
