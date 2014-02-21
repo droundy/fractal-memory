@@ -3,3 +3,5 @@ libs
 obj
 bin
 gen
+local.properties
+proguard-project.txt
