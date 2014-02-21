@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 void init_secure_random(SecureRandom *s, const char *seed) {
   int len = strlen(seed)+1;
