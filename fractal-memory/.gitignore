@@ -1,4 +1,5 @@
 SDL
 libs
 obj
-
+bin
+gen

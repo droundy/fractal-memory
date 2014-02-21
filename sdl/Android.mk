@@ -4,14 +4,15 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := main
 
-SDL_PATH := ../SDL2
+SDL_PATH := ../SDL
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include
 
 LOCAL_CFLAGS := -std=c99
 
 # Add your application source files here...
-LOCAL_SRC_FILES := game.c debug.c fractal-generator.c fractal-simulator.c \
+LOCAL_SRC_FILES := ../fractal-memory/jni/SDL/src/main/android/SDL_android_main.c \
+	game.c debug.c fractal-generator.c fractal-simulator.c \
 	secure-random.c sha512.c
 
 LOCAL_SHARED_LIBRARIES := SDL2
