@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "secure-random.h"
 #include "quick-random.h"
 

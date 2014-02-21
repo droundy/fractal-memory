@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdio.h>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 static void exitMessage(const char *msg) {
   fprintf(stderr, "%s\n", msg);

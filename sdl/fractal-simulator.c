@@ -162,12 +162,12 @@ static void Transform(const Transformation *t, Pt *p) {
   AffineTransform(&t->Post, p);
 }
 
-static void TransformFlames(const Flames *t, Pt *p) {
+static void TransformFlames(Flames *t, Pt *p) {
   const int which = quickrand32(&t->r) % t->N;
   Transform(&t->Transformations[which], p);
 }
 
-void Compute(const Flames *f, int size, double quality, HistogramEntry *hist) {
+void Compute(Flames *f, int size, double quality, HistogramEntry *hist) {
   int oldversion = f->version;
 	double hits = 0.0;
   double misses = 0.0;
@@ -306,7 +306,7 @@ void ReadHistogram(int size, int stride, HistogramEntry *hist, Uint32 *rgb) {
 }
 
 struct Computation {
-  const Flames *f;
+  Flames *f;
   int size;
   double quality;
   HistogramEntry *hist;
