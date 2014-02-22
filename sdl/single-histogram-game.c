@@ -1,7 +1,5 @@
 #include "game.h"
 
-static int histnum = 1;
-
 static inline int min(int a, int b) {
   return (a<b) ? a : b;
 }
@@ -43,7 +41,10 @@ void Init(SingleHistogramGame *g) {
 
   g->hist = (HistogramEntry *)calloc(g->size*g->size, sizeof(HistogramEntry));
   g->renderme = NULL;
-  SetFlame(g, "", histnum);
+
+  g->original = SDL_GetTicks();
+  g->on_display = g->original;
+  SetFlame(g, "", g->on_display);
 
   g->frame_time = 100;
 
@@ -114,7 +115,7 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
     /* } */
     break;
   case SDLK_s:
-    SetFlame(&game, "", ++histnum);
+    SetFlame(&game, "", ++g->on_display);
     /* for (int i=0;i<6;i++) { */
     /*   SecureRandom s; */
     /*   init_secure_random_from_int(&s, flame_number++); */
@@ -126,6 +127,12 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
   case SDLK_j:
     g->frame_time /= 2;
     break;
+  case SDLK_RIGHT:
+    HandleRight(g);
+    break;
+  case SDLK_LEFT:
+    HandleLeft(g);
+    break;
   case SDLK_k:
     g->frame_time *= 2;
     break;
@@ -134,10 +141,18 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
   }
 }
 
+void HandleLeft(SingleHistogramGame *g) {
+  SetFlame(&game, "", --g->on_display);
+}
+
+void HandleRight(SingleHistogramGame *g) {
+  SetFlame(&game, "", ++g->on_display);
+}
+
 void HandleMouse(SingleHistogramGame *g, int x, int y) {
   SDL_Event event;
   int next_frame = 0;
-  int oldx = g->x, oldy = g->y;
+  int oldx = g->x; // , oldy = g->y;
   const int topborder = (g->height - g->size)/2;
   const int leftborder = (g->width - g->size)/2;
   const int centerx = leftborder;
@@ -166,13 +181,13 @@ void HandleMouse(SingleHistogramGame *g, int x, int y) {
         if (event.motion.x - x > g->width/2) {
           g->x = centerx;
           g->y = centery;
-          SetFlame(&game, "", ++histnum);
+          HandleRight(g);
           return;
         }
         if (event.motion.x - x < -g->width/2) {
           g->x = centerx;
           g->y = centery;
-          SetFlame(&game, "", --histnum);
+          HandleLeft(g);
           return;
         }
         break;

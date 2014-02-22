@@ -17,6 +17,8 @@ static inline  void exitMessage(const char *msg) {
 typedef struct {
   int size, width, height, frame_time;
   int x, y;
+  int original;
+  int on_display;
   Flames f;
   HistogramEntry *hist;
   Uint32 *myPixels;
@@ -38,3 +40,6 @@ void Init(SingleHistogramGame *game);
 void SetFlame(SingleHistogramGame *g, const char *seed, int num);
 void HandleKey(SingleHistogramGame *g, SDL_Keycode c);
 void HandleMouse(SingleHistogramGame *g, int x, int y);
+
+void HandleLeft(SingleHistogramGame *g);
+void HandleRight(SingleHistogramGame *g);
