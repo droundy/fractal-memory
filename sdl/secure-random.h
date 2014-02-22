@@ -8,6 +8,7 @@ typedef struct {
 
 void init_secure_random(SecureRandom *, const char *);
 void init_secure_random_from_int(SecureRandom *, int);
+void init_secure_random_from_both(SecureRandom *, const char *, int);
 uint8_t secure_random(SecureRandom *);
 uint16_t secure_random16(SecureRandom *);
 uint32_t secure_random32(SecureRandom *);

@@ -2,142 +2,66 @@
 #include "fractal-flames.h"
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
-int dirty = 1;
-
-static int min(int a, int b) {
-  return (a<b) ? a : b;
-}
+SingleHistogramGame game;
 
 int main(int argc, char *argv[]) {
-  int flame_number = 0;
+  Init(&game);
 
-  SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
-  SDL_Window *sdlWindow;
-  SDL_Renderer *sdlRenderer;
-  SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP, &sdlWindow, &sdlRenderer);
-  if (!sdlRenderer || !sdlWindow) {
-    exitMessage("Unable to create window!");
-  }
-  /* if (TTF_Init() < 0) { */
-  /*   fprintf(stderr, "Unable to create text!\n"); */
-  /*   return 1; */
-  /* } */
-
-  SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");  // make the scaled rendering look smoother.
-
-  //SDL_SetRenderDrawColor(sdlRenderer, 0, 0, 0, 255);
-  //SDL_RenderClear(sdlRenderer);
-  //SDL_RenderPresent(sdlRenderer);
-
-  int width, height;
-  SDL_GetWindowSize(sdlWindow, &width, &height);
-  if (SDL_ASSERT_LEVEL > 2) printf("Size: %d, %d\n", width, height);
-  SDL_Texture *sdlTexture = SDL_CreateTexture(sdlRenderer,
-                                              SDL_PIXELFORMAT_ARGB8888,
-                                              SDL_TEXTUREACCESS_STREAMING,
-                                              width, height);
-
-  Uint32 *myPixels = (Uint32 *)calloc(width*height, 4);
-  for (int i=0; i<width*height; i++) {
-    myPixels[i] = 0xFFFF0000 + (i % 256) + 256*(i/4 % 256);
-  }
-  SDL_UpdateTexture(sdlTexture, NULL, myPixels, width * sizeof (Uint32));
-
-  SDL_RenderClear(sdlRenderer);
-  SDL_RenderCopy(sdlRenderer, sdlTexture, NULL, NULL);
-  SDL_RenderPresent(sdlRenderer);
-
-  /* A bool to check if the program has exited */
-  int quit = 0;
-
-  Flames f[6];
-  bzero(f, 6*sizeof(Flames));
-  const int size = min(height/2, width/3)*60/100;
-  const int border = size*20/100;
-  const double quality = 3.0;
-  HistogramEntry *hist[6];
-  for (int i=0;i<6;i++) {
-    SecureRandom s;
-    init_secure_random_from_int(&s, flame_number++);
-    InitFlames(&f[i], &s);
-    hist[i] = (HistogramEntry *)calloc(size*size, sizeof(HistogramEntry));
-    ComputeInThread(&f[i], size, quality, hist[i]);
-  }
+  int histnum = 1;
 
   SDL_Event event;
-  int frame_time = 100;
-  int next_frame = frame_time;
+  int next_frame = game.frame_time;
   /* While the program is running */
-  while (!quit) {
+  while (!SDL_AtomicGet(&game.done)) {
     int now = SDL_GetTicks();
-    if (now >= next_frame && dirty) {
-      dirty = 0; // so we can avoid redrawing this.
-      // update window graphics
-      for (int i=0; i<width*height; i++) {
-        myPixels[i] = 0xFFFF0000 + ((now/frame_time+i) % 256) + 256*((now/frame_time + i)/4 % 256);
-      }
-      const int borders = border + border*width;
-      ReadHistogram(size, width, hist[0], myPixels + borders);
-      ReadHistogram(size, width, hist[1], myPixels+width/3 + borders);
-      ReadHistogram(size, width, hist[2], myPixels+width/3*2 + borders);
-      ReadHistogram(size, width, hist[3], myPixels+height/2*width + borders);
-      ReadHistogram(size, width, hist[4], myPixels+height/2*width + width/3 + borders);
-      ReadHistogram(size, width, hist[5], myPixels+height/2*width + width/3*2 + borders);
-
-      SDL_UpdateTexture(sdlTexture, NULL, myPixels, width * sizeof (Uint32));
-
-      SDL_RenderClear(sdlRenderer);
-      SDL_RenderCopy(sdlRenderer, sdlTexture, NULL, NULL);
-      SDL_RenderPresent(sdlRenderer);
+    if (now >= next_frame) {
+      Draw(&game);
       // set the next time to draw:
-      next_frame = now + frame_time;
+      next_frame = now + game.frame_time;
     }
     /* Check for new events */
     if (SDL_WaitEventTimeout(&event, next_frame - now)) {
       /* If a quit event has been sent */
       if (event.type == SDL_QUIT) {
         /* Quit the application */
-        quit = 1;
+        SDL_AtomicSet(&game.done, 1);
       }
-      if (event.type == SDL_KEYDOWN) {
-        switch (event.key.keysym.sym) {
-        case SDLK_q:
-          quit = 1;
-          break;
-        case SDLK_z:
-          for (int i=0;i<6;i++) {
-            bzero(hist[i], size*size*sizeof(HistogramEntry));
-          }
-          break;
-        case SDLK_s:
-          for (int i=0;i<6;i++) {
-            SecureRandom s;
-            init_secure_random_from_int(&s, flame_number++);
-            InitFlames(&f[i], &s);
-            bzero(hist[i], size*size*sizeof(HistogramEntry));
-            ComputeInThread(&f[i], size, quality, hist[i]);
-          }
-          break;
-        case SDLK_j:
-          frame_time /= 2;
-          break;
-        case SDLK_k:
-          frame_time *= 2;
-          break;
-          //default:
-          //exitMessage("Unrecognized key pressed");
-        }
+      switch (event.type) {
+      case SDL_KEYDOWN:
+        HandleKey(&game, event.key.keysym.sym);
+        break;
+      case SDL_MOUSEBUTTONDOWN:
+        printf("Got mouse down\n");
+        SetFlame(&game, "", histnum++);
+        /* for (int i=0;i<6;i++) { */
+        /*   SecureRandom s; */
+        /*   init_secure_random_from_int(&s, flame_number++); */
+        /*   InitFlames(&f[i], &s); */
+        /*   bzero(hist[i], size*size*sizeof(HistogramEntry)); */
+        /*   ComputeInThread(&f[i], size, quality, hist[i]); */
+        /* } */
+        break;
+      case SDL_FINGERDOWN:
+        printf("Got finger down\n");
+        SetFlame(&game, "", histnum++);
+        /* for (int i=0;i<6;i++) { */
+        /*   SecureRandom s; */
+        /*   init_secure_random_from_int(&s, flame_number++); */
+        /*   InitFlames(&f[i], &s); */
+        /*   bzero(hist[i], size*size*sizeof(HistogramEntry)); */
+        /*   ComputeInThread(&f[i], size, quality, hist[i]); */
+        /* } */
+        break;
       }
     }
   }
-  for (int i=0;i<6;i++) {
-    SecureRandom s;
-    init_secure_random_from_int(&s, flame_number++);
-    InitFlames(&f[i], &s);
-    // this triggers compute threads to stop.
-  }
-  sleep(0); // give up the CPU just a moment so our threads can actually stop.  (hokey!)
+  printf("All done!\n");
+  /* for (int i=0;i<6;i++) { */
+  /*   SecureRandom s; */
+  /*   init_secure_random_from_int(&s, flame_number++); */
+  /*   InitFlames(&f[i], &s); */
+  /*   // this triggers compute threads to stop. */
+  /* } */
   return 0;
 }

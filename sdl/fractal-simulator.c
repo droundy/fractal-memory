@@ -167,7 +167,8 @@ static void TransformFlames(Flames *t, Pt *p) {
   Transform(&t->Transformations[which], p);
 }
 
-void Compute(Flames *f, int size, double quality, HistogramEntry *hist) {
+void Compute(SDL_atomic_t *done, SDL_atomic_t *dirty,
+             Flames *f, int size, double quality, HistogramEntry *hist) {
   int oldversion = f->version;
 	double hits = 0.0;
   double misses = 0.0;
@@ -212,7 +213,7 @@ void Compute(Flames *f, int size, double quality, HistogramEntry *hist) {
 	if (SDL_ASSERT_LEVEL > 2) printf("stddev = %g\n", stddev);
 	if (SDL_ASSERT_LEVEL > 2) printf("medianr = %g\n", medianr);
 
-	while (hits < wanthits && f->version == oldversion) {
+	while (hits < wanthits && !SDL_AtomicGet(done) && f->version == oldversion) {
 		TransformFlames(f, &p);
     const int xint = (p.X/medianr/2 + 1.0)*0.5*size + 0.5;
     const int yint = (p.Y/medianr/2 + 1.0)*0.5*size + 0.5;
@@ -223,15 +224,12 @@ void Compute(Flames *f, int size, double quality, HistogramEntry *hist) {
 			hist[n].B += p.B;
 			hist[n].A += 1;
 			hits++;
-      dirty = 1;
+      if (!(((int)hits) % (size*size))) SDL_AtomicSet(dirty, 1);
 		} else {
 			misses++;
 		}
-		//if misses > 1000 && misses < 2000 && hits/misses < 0.5 {
-		//	fmt.Printf("\nGiving up with ratio %g!\n\n", hits/misses)
-		//	return nil
-		//}
 	}
+  //printf("Finished Compute!\n");
 }
 
 static Uint32 RGB(double r, double g, double b) {
@@ -310,17 +308,23 @@ struct Computation {
   int size;
   double quality;
   HistogramEntry *hist;
+  SDL_sem *sem;
+  SDL_atomic_t *done, *dirty;
 };
 
 int DoCompute(void *computation) {
   struct Computation *c = (struct Computation *)computation;
   //printf("size: %d\n", c->size);
-  Compute(c->f, c->size, c->quality, c->hist);
+  while (!SDL_AtomicGet(c->done)) {
+    Compute(c->done, c->dirty, c->f, c->size, c->quality, c->hist);
+    SDL_SemWait(c->sem);
+  }
   free(c);
   return 0;
 }
 
-void ComputeInThread(Flames *f, int size, double quality, HistogramEntry *hist) {
+SDL_sem *ComputeInThread(SDL_atomic_t *done, SDL_atomic_t *dirty,
+                         Flames *f, int size, double quality, HistogramEntry *hist) {
   struct Computation *c = (struct Computation *) malloc(sizeof(struct Computation));
   c->f = f;
   c->size = size;
@@ -329,8 +333,12 @@ void ComputeInThread(Flames *f, int size, double quality, HistogramEntry *hist) 
   //printf("size: %d\n", size);
   //DoCompute(c);
   //exit(1);
-  f->renderthread = SDL_CreateThread(DoCompute, "Compute", (void *)c);
-  if (!f->renderthread) {
+  c->sem = SDL_CreateSemaphore(0);
+  c->done = done;
+  c->dirty = dirty;
+  SDL_Thread *renderthread = SDL_CreateThread(DoCompute, "Compute", (void *)c);
+  if (!renderthread) {
     printf("\nSDL_CreateThread failed: %s\n", SDL_GetError());
   }
+  return c->sem;
 }

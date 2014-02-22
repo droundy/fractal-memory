@@ -13,7 +13,7 @@ LOCAL_CFLAGS := -std=c99
 # Add your application source files here...
 LOCAL_SRC_FILES := ../fractal-memory/jni/SDL/src/main/android/SDL_android_main.c \
 	game.c debug.c fractal-generator.c fractal-simulator.c \
-	secure-random.c sha512.c
+	secure-random.c sha512.c single-histogram-game.c
 
 LOCAL_SHARED_LIBRARIES := SDL2
 

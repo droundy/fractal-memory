@@ -98,12 +98,12 @@ typedef struct Flames {
   int version; // a number that will change when we modify the Flames,
                // so a simulation thread can know when to stop.
   QuickRandom r;
-  SDL_Thread *renderthread;
 } Flames;
 
 // WARNING: the Flames content must be zeroed before calling InitFlames!
 void InitFlames(Flames *t, SecureRandom *s);
-void ComputeInThread(Flames *f, int size, double quality, HistogramEntry *hist);
+SDL_sem *ComputeInThread(SDL_atomic_t *dirty, SDL_atomic_t *done,
+                         Flames *f, int size, double quality, HistogramEntry *hist);
 void ReadHistogram(int size, int stride, HistogramEntry *hist, Uint32 *rgb);
 
 

@@ -161,7 +161,6 @@ static int max3(int a, int b, int c) {
 
 void InitFlames(Flames *f, SecureRandom *s) {
   f->version = 0;
-  if (f->renderthread) SDL_WaitThread(f->renderthread, NULL);
   bzero(f, sizeof(Flames)); // first zero out whatever was previously there...
   f->version = secure_random32(s);
   init_quick(&f->r); // initialize the random number generator for the simulator

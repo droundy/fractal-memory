@@ -24,6 +24,13 @@ void init_secure_random_from_int(SecureRandom *s, int seed) {
   free(foo);
 }
 
+void init_secure_random_from_both(SecureRandom *s, const char *str, int seed) {
+  char *foo = malloc(500);
+  sprintf(foo, "%s%d", str, seed);
+  init_secure_random(s, foo);
+  free(foo);
+}
+
 uint8_t secure_random(SecureRandom *s) {
   if (!s->bytes_left) {
     // hash our last hash to get the next set of bytes
