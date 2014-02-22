@@ -34,7 +34,7 @@ void Init(SingleHistogramGame *g) {
 
   bzero(&g->f, sizeof(Flames));
 
-  g->size = 80*min(g->width, g->height)/100;
+  g->size = 50*min(g->width, g->height)/100;
 
   const int topborder = (g->height - g->size)/2;
   const int leftborder = (g->width - g->size)/2;
@@ -45,16 +45,24 @@ void Init(SingleHistogramGame *g) {
   g->renderme = NULL;
   SetFlame(g, "", histnum);
 
-  g->frame_time = 1;
+  g->frame_time = 100;
 
   SDL_AtomicSet(&g->done, 0);
   SDL_AtomicSet(&g->dirty, 1);
 
   g->buffer = (Uint32 *)calloc(g->size*g->size, sizeof(Uint32));
-  g->buffer_filler = SDL_CreateThread(FillBuffer, "Fill buffer", (void *)g);
+  g->buffer_filler = SDL_CreateThread((SDL_ThreadFunction)FillBuffer, "Fill buffer", (void *)g);
 }
 
 void SetFlame(SingleHistogramGame *g, const char *seed, int num) {
+  /* static SDL_Haptic *haptic = (void *)-1; */
+  /* if (haptic == (void *)-1) { */
+  /*   haptic = SDL_HapticOpen(0); */
+  /*   if (SDL_HapticRumbleInit(haptic)) haptic = NULL; */
+  /* } */
+  /* if (haptic != NULL) { */
+  /*   SDL_HapticRumblePlay(haptic, 1.0, 100); */
+  /* } */
   SecureRandom s;
   init_secure_random_from_both(&s, seed, num);
   // initialize the flame in a temporary so that we won't temporarily
@@ -79,7 +87,7 @@ void Draw(SingleHistogramGame *g) {
     count++;
     SDL_AtomicSet(&g->dirty, 0);
 
-    const int gray = (count & 0) ? 0xFF : 0;
+    const int gray = (count & 0) ? 0xFF : 30;
     memset(g->myPixels, gray, sizeof(Uint32)*g->width*g->height);
     /* ReadHistogram(g->size, g->x, g->y, g->width, g->height, g->hist, g->myPixels); */
     for (int ix=0; ix<g->size; ix++)
@@ -106,7 +114,7 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
     /* } */
     break;
   case SDLK_s:
-    SetFlame(&game, "", histnum++);
+    SetFlame(&game, "", ++histnum);
     /* for (int i=0;i<6;i++) { */
     /*   SecureRandom s; */
     /*   init_secure_random_from_int(&s, flame_number++); */
@@ -169,7 +177,7 @@ void HandleMouse(SingleHistogramGame *g, int x, int y) {
         }
         break;
       case SDL_MOUSEBUTTONUP:
-        printf("Got mouse up\n");
+        // go back!
         g->x = oldx;
         return;
       }
