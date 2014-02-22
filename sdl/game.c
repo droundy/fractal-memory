@@ -32,12 +32,12 @@ int main(int argc, char *argv[]) {
         HandleKey(&game, event.key.keysym.sym);
         break;
       case SDL_MOUSEBUTTONDOWN:
-        printf("Got mouse down\n");
-        SetFlame(&game, "", histnum++);
+        //SetFlame(&game, "", histnum++);
+        HandleMouse(&game, event.button.x, event.button.y);
         break;
       case SDL_FINGERDOWN:
-        printf("Got finger down\n");
-        SetFlame(&game, "", histnum++);
+        //printf("Got finger down\n");
+        //SetFlame(&game, "", histnum++);
         break;
       }
     }

@@ -239,7 +239,8 @@ static Uint32 RGB(double r, double g, double b) {
   return 0xFF000000 + (int)(r*256)*0x10000 + (int)(g*256)*0x100 + (int)(b*256);
 }
 
-void ReadHistogram(int size, int stride, HistogramEntry *hist, Uint32 *rgb) {
+void ReadHistogram(int size, int x, int y, int width, int height,
+                   HistogramEntry *hist, Uint32 *rgb) {
 	double filling = 0.0;
   const int N = size*size;
 	for (int i=0;i<N;i++) {
@@ -287,17 +288,21 @@ void ReadHistogram(int size, int stride, HistogramEntry *hist, Uint32 *rgb) {
   const double norm = 1.0/log(factor*maxA);
 	//denominator = 2*stddev*stddev/maxA
 	for (int ix=0; ix<size; ix++) {
-    for (int iy=0; iy<size; iy++) {
-      const int n = ix + size*iy;
-      if (hist[n].A > 0) {
-        // a(minA)*histA == 0
-        // I wish that... a(maxA)*histA == 1 ... but it's not true
-        // a(meanA)*histA == 0.5
-        const double a = norm*log(factor*hist[n].A)/hist[n].A;
-        //printf(ix, iy, a, hist[n].A)
-        rgb[ix+stride*iy] = RGB(hist[n].R*a, hist[n].G*a, hist[n].B*a);
-      } else {
-        rgb[ix+stride*iy] = 0xFF000000;
+    if (ix + x < width && ix + x >= 0) {
+      for (int iy=0; iy<size; iy++) {
+        if (iy + y < height && iy + y >= 0) {
+          const int n = ix + size*iy;
+          if (hist[n].A > 0) {
+            // a(minA)*histA == 0
+            // I wish that... a(maxA)*histA == 1 ... but it's not true
+            // a(meanA)*histA == 0.5
+            const double a = norm*log(factor*hist[n].A)/hist[n].A;
+            //printf(ix, iy, a, hist[n].A)
+            rgb[(x+ix)+width*(y+iy)] = RGB(hist[n].R*a, hist[n].G*a, hist[n].B*a);
+          } else {
+            rgb[(x+ix)+width*(y+iy)] = 0xFF000000;
+          }
+        }
       }
     }
   }

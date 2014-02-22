@@ -104,7 +104,8 @@ typedef struct Flames {
 void InitFlames(Flames *t, SecureRandom *s);
 SDL_sem *ComputeInThread(SDL_atomic_t *dirty, SDL_atomic_t *done,
                          Flames *f, int size, double quality, HistogramEntry *hist);
-void ReadHistogram(int size, int stride, HistogramEntry *hist, Uint32 *rgb);
+void ReadHistogram(int size, int x, int y, int width, int height,
+                   HistogramEntry *hist, Uint32 *rgb);
 
 
 void PrintAffine(AffineTransformation *t);

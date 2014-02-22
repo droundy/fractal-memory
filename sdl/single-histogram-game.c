@@ -1,7 +1,17 @@
 #include "game.h"
 
+static int histnum = 1;
+
 static inline int min(int a, int b) {
   return (a<b) ? a : b;
+}
+
+int FillBuffer(SingleHistogramGame *g) {
+  while (!SDL_AtomicGet(&g->done)) {
+    ReadHistogram(g->size, 0, 0, g->size, g->size, g->hist, g->buffer);
+    SDL_Delay(g->frame_time);
+  }
+  return 0;
 }
 
 void Init(SingleHistogramGame *g) {
@@ -25,14 +35,23 @@ void Init(SingleHistogramGame *g) {
   bzero(&g->f, sizeof(Flames));
 
   g->size = 80*min(g->width, g->height)/100;
+
+  const int topborder = (g->height - g->size)/2;
+  const int leftborder = (g->width - g->size)/2;
+  g->x = leftborder;
+  g->y = topborder;
+
   g->hist = (HistogramEntry *)calloc(g->size*g->size, sizeof(HistogramEntry));
   g->renderme = NULL;
-  SetFlame(g, "", 0);
+  SetFlame(g, "", histnum);
 
   g->frame_time = 1;
 
   SDL_AtomicSet(&g->done, 0);
   SDL_AtomicSet(&g->dirty, 1);
+
+  g->buffer = (Uint32 *)calloc(g->size*g->size, sizeof(Uint32));
+  g->buffer_filler = SDL_CreateThread(FillBuffer, "Fill buffer", (void *)g);
 }
 
 void SetFlame(SingleHistogramGame *g, const char *seed, int num) {
@@ -59,14 +78,15 @@ void Draw(SingleHistogramGame *g) {
   if (SDL_AtomicGet(&g->dirty)) {
     count++;
     SDL_AtomicSet(&g->dirty, 0);
-    //bzero(g->myPixels, sizeof(Uint32)*g->width*g->height);
+
     const int gray = (count & 0) ? 0xFF : 0;
     memset(g->myPixels, gray, sizeof(Uint32)*g->width*g->height);
-    const int topborder = (g->height - g->size)/2;
-    const int leftborder = (g->width - g->size)/2;
-    ReadHistogram(g->size, g->width, g->hist,
-                  g->myPixels + leftborder + topborder*g->width);
-
+    /* ReadHistogram(g->size, g->x, g->y, g->width, g->height, g->hist, g->myPixels); */
+    for (int ix=0; ix<g->size; ix++)
+      if (ix + g->x < g->width && ix + g->x >= 0)
+        for (int iy=0; iy<g->size; iy++)
+          if (iy + g->y < g->height && iy + g->y >= 0)
+            g->myPixels[(g->x+ix)+g->width*(g->y+iy)] = g->buffer[ix + g->size*iy];
     SDL_UpdateTexture(g->sdlTexture, NULL, g->myPixels, g->width * sizeof (Uint32));
 
     SDL_RenderClear(g->sdlRenderer);
@@ -76,7 +96,6 @@ void Draw(SingleHistogramGame *g) {
 }
 
 void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
-  static int histnum = 1;
   switch (c) {
   case SDLK_q:
     SDL_AtomicSet(&g->done, 1);
@@ -104,5 +123,56 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
     break;
     //default:
     //exitMessage("Unrecognized key pressed");
+  }
+}
+
+void HandleMouse(SingleHistogramGame *g, int x, int y) {
+  SDL_Event event;
+  int next_frame = 0;
+  int oldx = g->x, oldy = g->y;
+  const int topborder = (g->height - g->size)/2;
+  const int leftborder = (g->width - g->size)/2;
+  const int centerx = leftborder;
+  const int centery = topborder;
+  while (!SDL_AtomicGet(&game.done)) {
+    int now = SDL_GetTicks();
+    if (now >= next_frame) {
+      Draw(&game);
+      // set the next time to draw:
+      next_frame = now + game.frame_time;
+    }
+    /* Check for new events */
+    if (SDL_WaitEventTimeout(&event, next_frame - now)) {
+      /* If a quit event has been sent */
+      if (event.type == SDL_QUIT) {
+        /* Quit the application */
+        SDL_AtomicSet(&game.done, 1);
+      }
+      switch (event.type) {
+      case SDL_KEYDOWN:
+        HandleKey(&game, event.key.keysym.sym);
+        break;
+      case SDL_MOUSEMOTION:
+        g->x = oldx + event.motion.x - x;
+        //g->y = oldy + event.motion.y - y;
+        if (event.motion.x - x > g->width/2) {
+          g->x = centerx;
+          g->y = centery;
+          SetFlame(&game, "", ++histnum);
+          return;
+        }
+        if (event.motion.x - x < -g->width/2) {
+          g->x = centerx;
+          g->y = centery;
+          SetFlame(&game, "", --histnum);
+          return;
+        }
+        break;
+      case SDL_MOUSEBUTTONUP:
+        printf("Got mouse up\n");
+        g->x = oldx;
+        return;
+      }
+    }
   }
 }

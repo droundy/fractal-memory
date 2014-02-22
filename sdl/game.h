@@ -16,6 +16,7 @@ static inline  void exitMessage(const char *msg) {
 
 typedef struct {
   int size, width, height, frame_time;
+  int x, y;
   Flames f;
   HistogramEntry *hist;
   Uint32 *myPixels;
@@ -24,6 +25,10 @@ typedef struct {
 
   SDL_sem *renderme;
   SDL_atomic_t done, dirty;
+
+  // The buffer holds the fractal image and is filled by the buffer_filler
+  Uint32 *buffer;
+  SDL_Thread *buffer_filler;
 } SingleHistogramGame;
 
 extern SingleHistogramGame game;
@@ -32,3 +37,4 @@ void Draw(SingleHistogramGame *game);
 void Init(SingleHistogramGame *game);
 void SetFlame(SingleHistogramGame *g, const char *seed, int num);
 void HandleKey(SingleHistogramGame *g, SDL_Keycode c);
+void HandleMouse(SingleHistogramGame *g, int x, int y);
