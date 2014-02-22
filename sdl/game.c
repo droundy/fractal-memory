@@ -34,34 +34,14 @@ int main(int argc, char *argv[]) {
       case SDL_MOUSEBUTTONDOWN:
         printf("Got mouse down\n");
         SetFlame(&game, "", histnum++);
-        /* for (int i=0;i<6;i++) { */
-        /*   SecureRandom s; */
-        /*   init_secure_random_from_int(&s, flame_number++); */
-        /*   InitFlames(&f[i], &s); */
-        /*   bzero(hist[i], size*size*sizeof(HistogramEntry)); */
-        /*   ComputeInThread(&f[i], size, quality, hist[i]); */
-        /* } */
         break;
       case SDL_FINGERDOWN:
         printf("Got finger down\n");
         SetFlame(&game, "", histnum++);
-        /* for (int i=0;i<6;i++) { */
-        /*   SecureRandom s; */
-        /*   init_secure_random_from_int(&s, flame_number++); */
-        /*   InitFlames(&f[i], &s); */
-        /*   bzero(hist[i], size*size*sizeof(HistogramEntry)); */
-        /*   ComputeInThread(&f[i], size, quality, hist[i]); */
-        /* } */
         break;
       }
     }
   }
   printf("All done!\n");
-  /* for (int i=0;i<6;i++) { */
-  /*   SecureRandom s; */
-  /*   init_secure_random_from_int(&s, flame_number++); */
-  /*   InitFlames(&f[i], &s); */
-  /*   // this triggers compute threads to stop. */
-  /* } */
   return 0;
 }

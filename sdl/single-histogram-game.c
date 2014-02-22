@@ -29,7 +29,7 @@ void Init(SingleHistogramGame *g) {
   g->renderme = NULL;
   SetFlame(g, "", 0);
 
-  g->frame_time = 100;
+  g->frame_time = 1;
 
   SDL_AtomicSet(&g->done, 0);
   SDL_AtomicSet(&g->dirty, 1);
@@ -55,9 +55,13 @@ void SetFlame(SingleHistogramGame *g, const char *seed, int num) {
 }
 
 void Draw(SingleHistogramGame *g) {
+  static int count = 0;
   if (SDL_AtomicGet(&g->dirty)) {
+    count++;
     SDL_AtomicSet(&g->dirty, 0);
-    bzero(g->myPixels, sizeof(Uint32)*g->width*g->height);
+    //bzero(g->myPixels, sizeof(Uint32)*g->width*g->height);
+    const int gray = (count & 0) ? 0xFF : 0;
+    memset(g->myPixels, gray, sizeof(Uint32)*g->width*g->height);
     const int topborder = (g->height - g->size)/2;
     const int leftborder = (g->width - g->size)/2;
     ReadHistogram(g->size, g->width, g->hist,
