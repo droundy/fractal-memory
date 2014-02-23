@@ -1,11 +1,19 @@
-import glob
+import glob, os
 
 # create build environment
 env = Environment()
 
+# The following is needed because scons is stupid and removes the
+# needed environment variables.  For more explanation, see:
+
+# http://issues.lumiera.org/ticket/525
+env["ENV"]["PKG_CONFIG_PATH"] = os.environ.get("PKG_CONFIG_PATH")
 # determine compiler and linker flags for SDL
-env.ParseConfig('sdl2-config --cflags')
-env.ParseConfig('sdl2-config --libs')
+env.ParseConfig('pkg-config --cflags sdl2')
+env.ParseConfig('pkg-config --libs sdl2')
+env.ParseConfig('pkg-config --cflags SDL2_ttf')
+env.ParseConfig('pkg-config --libs SDL2_ttf')
+env.ParseConfig('pkg-config --libs freetype2')
 
 # gather a list of source files
 SOURCES = glob.glob('*.c')

@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 #include <SDL.h>
+#include <SDL_ttf.h>
+
 #include "fractal-flames.h"
 
 static inline  void exitMessage(const char *msg) {
@@ -51,6 +53,7 @@ typedef struct {
   // The buffer holds the fractal image and is filled by the buffer_filler
   Uint32 *buffer;
   SDL_Thread *buffer_filler;
+  TTF_Font *font;
 } SingleHistogramGame;
 
 extern SingleHistogramGame game;
@@ -63,3 +66,7 @@ void HandleMouse(SingleHistogramGame *g, int x, int y);
 
 void HandleLeft(SingleHistogramGame *g);
 void HandleRight(SingleHistogramGame *g);
+void HandleUp(SingleHistogramGame *g);
+void HandleDown(SingleHistogramGame *g);
+
+void renderTextAt(SingleHistogramGame *g, const char *message, int x, int y);

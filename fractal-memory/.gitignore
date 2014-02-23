@@ -1,4 +1,5 @@
 SDL
+SDL_ttf
 libs
 obj
 bin

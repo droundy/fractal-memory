@@ -4,6 +4,28 @@ static inline int min(int a, int b) {
   return (a<b) ? a : b;
 }
 
+void renderTextAt(SingleHistogramGame *g, const char *message, int x, int y) {
+	//We need to first render to a surface as that's what TTF_RenderText
+	//returns, then load that surface into a texture
+  SDL_Color color = { 255, 255, 255 };
+	SDL_Surface *surf = TTF_RenderText_Blended(g->font, message, color);
+	if (surf == NULL) exitMessage("Trouble creating surface");
+	SDL_Texture *texture = SDL_CreateTextureFromSurface(g->sdlRenderer, surf);
+	if (texture == NULL) exitMessage("Trouble making texture");
+	//Clean up the surface and font
+	SDL_FreeSurface(surf);
+
+	//Setup the destination rectangle to be at the position we want
+	SDL_Rect dst;
+	dst.x = x;
+	dst.y = y;
+	//Query the texture to get its width and height to use
+	SDL_QueryTexture(texture, NULL, NULL, &dst.w, &dst.h);
+	SDL_RenderCopy(g->sdlRenderer, texture, NULL, &dst);
+
+  SDL_DestroyTexture(texture);
+}
+
 int FillBuffer(SingleHistogramGame *g) {
   while (!SDL_AtomicGet(&g->done)) {
     ReadHistogram(g->size, 0, 0, g->size, g->size, g->hist, g->buffer);
@@ -64,6 +86,12 @@ void SetOriginal(SingleHistogramGame *g) {
 
 void Init(SingleHistogramGame *g) {
   SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
+
+  if(TTF_Init()==-1) {
+    printf("TTF_Init: %s\n", TTF_GetError());
+    exit(2);
+  }
+
   SDL_Window *sdlWindow;
   SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP,
                               &sdlWindow, &g->sdlRenderer);
@@ -101,6 +129,11 @@ void Init(SingleHistogramGame *g) {
 
   g->buffer = (Uint32 *)calloc(g->size*g->size, sizeof(Uint32));
   g->buffer_filler = SDL_CreateThread((SDL_ThreadFunction)FillBuffer, "Fill buffer", (void *)g);
+
+  g->font = TTF_OpenFont( "LiberationMono-Regular.ttf", 28 );
+  if (!g->font)
+    g->font = TTF_OpenFont( "/usr/share/fonts/truetype/ttf-liberation/LiberationMono-Regular.ttf", 28 );
+  if (!g->font) exitMessage("Unable to open font");
 }
 
 void TweakFlame(Flames *f, Flames *o, Tweak t) {
@@ -217,6 +250,7 @@ void Draw(SingleHistogramGame *g) {
 
     SDL_RenderClear(g->sdlRenderer);
     SDL_RenderCopy(g->sdlRenderer, g->sdlTexture, NULL, NULL);
+    renderTextAt(g, "Hello world!", 100, 100);
     SDL_RenderPresent(g->sdlRenderer);
   }
 }
