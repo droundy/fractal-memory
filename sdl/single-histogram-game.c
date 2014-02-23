@@ -12,6 +12,56 @@ int FillBuffer(SingleHistogramGame *g) {
   return 0;
 }
 
+void SetOriginal(SingleHistogramGame *g) {
+  g->original.str = "";
+  g->original.seed = SDL_GetTicks()*1000;
+  g->original.original = g->original.seed;
+  g->original.tweak = NOTWEAK;
+  g->original.alltweak = NOTWEAK;
+  g->on_display = g->original;
+  switch (SDL_GetTicks() % 12) {
+  case 0:
+    printf("Using shape of original.\n");
+    g->on_display.alltweak = COPYSHAPE;
+    break;
+  case 1:
+    printf("Using color of original.\n");
+    g->on_display.alltweak = COPYCOLOR;
+    break;
+  case 2:
+    printf("No tweaks.\n");
+    break;
+  case 3:
+  case 4:
+    printf("Maintaining symmetry.\n");
+    g->on_display.alltweak = COPYSYMMETRY;
+    break;
+  case 5:
+  case 6:
+    printf("Maintaining symmetry and grayness.\n");
+    g->on_display.alltweak = COPYSYMMETRY | COPYGRAY;
+    g->original.alltweak = COPYGRAY;
+    break;
+  case 7:
+  case 8:
+    printf("Maintaining all but symmetry.\n");
+    g->on_display.alltweak = COPYALLBUTSYMMETRY;
+    break;
+  case 9:
+  case 10:
+    printf("Maintaining all but symmetry and grayness.\n");
+    g->on_display.alltweak = COPYALLBUTSYMMETRY | COPYGRAY;
+    g->original.alltweak = COPYGRAY;
+    break;
+  default:
+    printf("Using black and white.\n");
+    g->on_display.alltweak = COPYGRAY;
+    g->original.alltweak = COPYGRAY;
+    break;
+  }
+  SetFlame(g, g->on_display);
+}
+
 void Init(SingleHistogramGame *g) {
   SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
   SDL_Window *sdlWindow;
@@ -42,9 +92,7 @@ void Init(SingleHistogramGame *g) {
   g->hist = (HistogramEntry *)calloc(g->size*g->size, sizeof(HistogramEntry));
   g->renderme = NULL;
 
-  g->original = SDL_GetTicks();
-  g->on_display = g->original;
-  SetFlame(g, "", g->on_display);
+  SetOriginal(g);
 
   g->frame_time = 100;
 
@@ -55,7 +103,82 @@ void Init(SingleHistogramGame *g) {
   g->buffer_filler = SDL_CreateThread((SDL_ThreadFunction)FillBuffer, "Fill buffer", (void *)g);
 }
 
-void SetFlame(SingleHistogramGame *g, const char *seed, int num) {
+void TweakFlame(Flames *f, Flames *o, Tweak t) {
+  if (t & COPYCOLOR) {
+    for (int i=0;i<MAX_TRANS; i++) {
+      f->Transformations[i].R = o->Transformations[i].R;
+      f->Transformations[i].G = o->Transformations[i].G;
+      f->Transformations[i].B = o->Transformations[i].B;
+      f->Transformations[i].A = o->Transformations[i].A;
+    }
+  }
+  if (t & COPYSHAPE0) {
+    o->Transformations[0].R = f->Transformations[0].R;
+    o->Transformations[0].G = f->Transformations[0].G;
+    o->Transformations[0].B = f->Transformations[0].B;
+    o->Transformations[0].A = f->Transformations[0].A;
+    f->Transformations[0] = o->Transformations[0];
+  }
+  if (t & COPYSHAPE1) {
+    o->Transformations[1].R = f->Transformations[1].R;
+    o->Transformations[1].G = f->Transformations[1].G;
+    o->Transformations[1].B = f->Transformations[1].B;
+    o->Transformations[1].A = f->Transformations[1].A;
+    f->Transformations[1] = o->Transformations[1];
+  }
+  if (t & COPYSHAPE2) {
+    o->Transformations[2].R = f->Transformations[2].R;
+    o->Transformations[2].G = f->Transformations[2].G;
+    o->Transformations[2].B = f->Transformations[2].B;
+    o->Transformations[2].A = f->Transformations[2].A;
+    f->Transformations[2] = o->Transformations[2];
+  }
+  if (t & COPYSHAPE3) {
+    o->Transformations[3].R = f->Transformations[3].R;
+    o->Transformations[3].G = f->Transformations[3].G;
+    o->Transformations[3].B = f->Transformations[3].B;
+    o->Transformations[3].A = f->Transformations[3].A;
+    f->Transformations[3] = o->Transformations[3];
+  }
+  if (t & COPYSYMMETRY) {
+    f->N = o->N;
+    for (int i=num_trans; i<f->N; i++) {
+      f->Transformations[i] = o->Transformations[i];
+    }
+  }
+  if (t & COPYALLBUTSYMMETRY) {
+    for (int i=0; i<num_trans; i++) {
+      f->Transformations[i] = o->Transformations[i];
+    }
+  }
+  if (t & COPYGRAY) {
+    for (int i=0;i<MAX_TRANS; i++) {
+      double gray = o->Transformations[i].R/3 +
+                    o->Transformations[i].G/3 +
+                    o->Transformations[i].B/3;
+      f->Transformations[i].R = gray;
+      f->Transformations[i].G = gray;
+      f->Transformations[i].B = gray;
+      f->Transformations[i].A = o->Transformations[i].A;
+    }
+  }
+}
+
+Flames CreateFlame(TweakedSeed seed) {
+  Flames f, original;
+  SecureRandom s;
+  SecureRandom o;
+  init_secure_random_from_both(&s, seed.str, seed.seed);
+  init_secure_random_from_both(&o, seed.str, seed.original);
+  InitFlames(&f, &s);
+  InitFlames(&original, &o);
+  Flames originalcopy = original;
+  TweakFlame(&f, &originalcopy, seed.tweak);
+  TweakFlame(&f, &original, seed.alltweak);
+  return f;
+}
+
+void SetFlame(SingleHistogramGame *g, TweakedSeed seed) {
   /* static SDL_Haptic *haptic = (void *)-1; */
   /* if (haptic == (void *)-1) { */
   /*   haptic = SDL_HapticOpen(0); */
@@ -64,13 +187,7 @@ void SetFlame(SingleHistogramGame *g, const char *seed, int num) {
   /* if (haptic != NULL) { */
   /*   SDL_HapticRumblePlay(haptic, 1.0, 100); */
   /* } */
-  SecureRandom s;
-  init_secure_random_from_both(&s, seed, num);
-  // initialize the flame in a temporary so that we won't temporarily
-  // set it to something invalid that confuses the render thread.
-  Flames newf;
-  InitFlames(&newf, &s);
-  g->f = newf;
+  g->f = CreateFlame(seed);
   bzero(g->hist, g->size*g->size*sizeof(HistogramEntry));
   const double quality = 3;
   if (g->renderme == NULL) {
@@ -115,7 +232,7 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
     /* } */
     break;
   case SDLK_s:
-    SetFlame(&game, "", ++g->on_display);
+    HandleRight(g);
     /* for (int i=0;i<6;i++) { */
     /*   SecureRandom s; */
     /*   init_secure_random_from_int(&s, flame_number++); */
@@ -133,6 +250,12 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
   case SDLK_LEFT:
     HandleLeft(g);
     break;
+  case SDLK_UP:
+    HandleUp(g);
+    break;
+  case SDLK_DOWN:
+    HandleDown(g);
+    break;
   case SDLK_k:
     g->frame_time *= 2;
     break;
@@ -141,12 +264,49 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
   }
 }
 
+static void NextGuess(SingleHistogramGame *g) {
+  g->on_display.seed++;
+  int tweakness = quickrand32(&g->f.r) % 100;
+  if (tweakness < 5) {
+    g->on_display.tweak = NOTWEAK;
+  } else if (tweakness < 10) {
+    g->on_display.tweak = COPYORIGINAL;
+  } else if (tweakness < 20) {
+    g->on_display.tweak = COPYSHAPE;
+  } else if (tweakness < 30) {
+    g->on_display.tweak = COPYSHAPE0;
+  } else if (tweakness < 40) {
+    g->on_display.tweak = COPYSHAPE1;
+  } else if (tweakness < 50) {
+    g->on_display.tweak = COPYSHAPE2;
+  } else if (tweakness < 60) {
+    g->on_display.tweak = COPYSHAPE3;
+  } else if (tweakness < 70) {
+    g->on_display.tweak = COPYALLBUTSYMMETRY;
+  } else if (tweakness < 80) {
+    g->on_display.tweak = COPYCOLOR;
+  } else {
+    g->on_display.tweak = COPYSYMMETRY;
+  }
+  //printf("num: %d  original: %d  tweak %d\n",
+  //       g->on_display.seed, g->on_display.original, g->on_display.tweak);
+  SetFlame(&game, g->on_display);
+}
+
 void HandleLeft(SingleHistogramGame *g) {
-  SetFlame(&game, "", --g->on_display);
+  NextGuess(g);
 }
 
 void HandleRight(SingleHistogramGame *g) {
-  SetFlame(&game, "", ++g->on_display);
+  NextGuess(g);
+}
+
+void HandleUp(SingleHistogramGame *g) {
+  SetOriginal(g);
+}
+
+void HandleDown(SingleHistogramGame *g) {
+  SetOriginal(g);
 }
 
 void HandleMouse(SingleHistogramGame *g, int x, int y) {
@@ -188,6 +348,18 @@ void HandleMouse(SingleHistogramGame *g, int x, int y) {
           g->x = centerx;
           g->y = centery;
           HandleLeft(g);
+          return;
+        }
+        if (event.motion.y - y < -g->height/2) {
+          g->x = centerx;
+          g->y = centery;
+          HandleUp(g);
+          return;
+        }
+        if (event.motion.y - y > g->height/2) {
+          g->x = centerx;
+          g->y = centery;
+          HandleDown(g);
           return;
         }
         break;

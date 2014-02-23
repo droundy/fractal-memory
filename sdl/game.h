@@ -14,11 +14,31 @@ static inline  void exitMessage(const char *msg) {
   exit(1);
 }
 
+typedef enum {
+  COPYCOLOR = 1,
+  COPYSHAPE0 = 1<<1,
+  COPYSHAPE1 = 1<<2,
+  COPYSHAPE2 = 1<<3,
+  COPYSHAPE3 = 1<<4,
+  COPYSYMMETRY = 1<<5,
+  COPYALLBUTSYMMETRY = 1<<6,
+  NOTWEAK = 0,
+  COPYGRAY = 1<<7,
+} Tweak;
+
+static const Tweak COPYSHAPE = COPYSHAPE0 | COPYSHAPE1 | COPYSHAPE2 | COPYSHAPE3;
+static const Tweak COPYORIGINAL = COPYSYMMETRY | COPYALLBUTSYMMETRY;
+
+typedef struct {
+  const char *str;
+  int original, seed;
+  Tweak tweak, alltweak;
+} TweakedSeed;
+
 typedef struct {
   int size, width, height, frame_time;
   int x, y;
-  int original;
-  int on_display;
+  TweakedSeed original, on_display;
   Flames f;
   HistogramEntry *hist;
   Uint32 *myPixels;
@@ -37,7 +57,7 @@ extern SingleHistogramGame game;
 
 void Draw(SingleHistogramGame *game);
 void Init(SingleHistogramGame *game);
-void SetFlame(SingleHistogramGame *g, const char *seed, int num);
+void SetFlame(SingleHistogramGame *g, TweakedSeed seed);
 void HandleKey(SingleHistogramGame *g, SDL_Keycode c);
 void HandleMouse(SingleHistogramGame *g, int x, int y);
 
