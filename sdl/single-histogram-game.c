@@ -5,23 +5,23 @@ static inline int min(int a, int b) {
 }
 
 void renderTextAt(SingleHistogramGame *g, const char *message, int x, int y) {
-	//We need to first render to a surface as that's what TTF_RenderText
-	//returns, then load that surface into a texture
+  //We need to first render to a surface as that's what TTF_RenderText
+  //returns, then load that surface into a texture
   SDL_Color color = { 255, 255, 255 };
-	SDL_Surface *surf = TTF_RenderText_Blended(g->font, message, color);
-	if (surf == NULL) exitMessage("Trouble creating surface");
-	SDL_Texture *texture = SDL_CreateTextureFromSurface(g->sdlRenderer, surf);
-	if (texture == NULL) exitMessage("Trouble making texture");
-	//Clean up the surface and font
-	SDL_FreeSurface(surf);
+  SDL_Surface *surf = TTF_RenderText_Blended(g->font, message, color);
+  if (surf == NULL) exitMessage("Trouble creating surface");
+  SDL_Texture *texture = SDL_CreateTextureFromSurface(g->sdlRenderer, surf);
+  if (texture == NULL) exitMessage("Trouble making texture");
+  //Clean up the surface and font
+  SDL_FreeSurface(surf);
 
-	//Setup the destination rectangle to be at the position we want
-	SDL_Rect dst;
-	dst.x = x;
-	dst.y = y;
-	//Query the texture to get its width and height to use
-	SDL_QueryTexture(texture, NULL, NULL, &dst.w, &dst.h);
-	SDL_RenderCopy(g->sdlRenderer, texture, NULL, &dst);
+  //Setup the destination rectangle to be at the position we want
+  SDL_Rect dst;
+  dst.x = x;
+  dst.y = y;
+  //Query the texture to get its width and height to use
+  SDL_QueryTexture(texture, NULL, NULL, &dst.w, &dst.h);
+  SDL_RenderCopy(g->sdlRenderer, texture, NULL, &dst);
 
   SDL_DestroyTexture(texture);
 }
@@ -333,9 +333,13 @@ void Draw(SingleHistogramGame *g) {
     char *buffer = malloc(1024);
     ShowTweaked(buffer, g->on_display);
     renderTextAt(g, buffer, 50, 90);
-    sprintf(buffer, "false negatives:  %2d/%2d   false positives:  %2d/%2d",
-            g->false_negatives, g->true_negatives,
-            g->false_positives, g->true_positives);
+    if (g->on_display.seed == g->original.seed) {
+      sprintf(buffer, "Remember this shape carefully!");
+    } else {
+      sprintf(buffer, "false negatives:  %2d/%2d   false positives:  %2d/%2d",
+              g->false_negatives, g->true_negatives,
+              g->false_positives, g->true_positives);
+    }
     renderTextAt(g, buffer, 50, 130);
     sprintf(buffer, "games won:  %2d", g->games_won);
     renderTextAt(g, buffer, 50, 170);
@@ -450,10 +454,12 @@ void HandleRight(SingleHistogramGame *g) {
   }
   if (g->true_positives == 3) {
     // We won a game!
+    g->false_positives = g->true_positives = g->false_negatives = g->true_negatives = 0;
     g->games_won++;
     SetOriginal(g);
+  } else {
+    NextGuess(g);
   }
-  NextGuess(g);
 }
 
 void HandleUp(SingleHistogramGame *g) {
