@@ -197,6 +197,58 @@ void TweakFlame(Flames *f, Flames *o, Tweak t) {
   }
 }
 
+void ShowTweaked(char *buffer, TweakedSeed seed) {
+  seed.tweak |= seed.alltweak;
+  if (seed.tweak == COPYORIGINAL || seed.seed == seed.original
+      || (seed.tweak & COPYSYMMETRY && seed.tweak & COPYALLBUTSYMMETRY)) {
+    sprintf(buffer, "original: %d", seed.original);
+    return;
+  }
+  if (seed.tweak == COPYSHAPE) {
+    sprintf(buffer, "copy shape: %d", seed.seed);
+    return;
+  }
+  const char *separator = "";
+  if (seed.tweak & COPYCOLOR) {
+    buffer += sprintf(buffer, "%scolor", separator);
+    separator = ", ";
+  }
+  if (seed.tweak & COPYSHAPE0 &&
+      seed.tweak & COPYSHAPE1 &&
+      seed.tweak & COPYSHAPE2 &&
+      seed.tweak & COPYSHAPE3 &&
+      !(seed.tweak & COPYALLBUTSYMMETRY)) {
+    buffer += sprintf(buffer, "%scopy shape", separator);
+    separator = ", ";
+  } else {
+    if (seed.tweak & COPYSHAPE0 && !(seed.tweak & COPYALLBUTSYMMETRY)) {
+      buffer += sprintf(buffer, "%sshape 0", separator);
+      separator = ", ";
+    }
+    if (seed.tweak & COPYSHAPE1 && !(seed.tweak & COPYALLBUTSYMMETRY)) {
+      buffer += sprintf(buffer, "%sshape 1", separator);
+      separator = ", ";
+    }
+    if (seed.tweak & COPYSHAPE2 && !(seed.tweak & COPYALLBUTSYMMETRY)) {
+      buffer += sprintf(buffer, "%sshape 2", separator);
+      separator = ", ";
+    }
+    if (seed.tweak & COPYSHAPE3 && !(seed.tweak & COPYALLBUTSYMMETRY)) {
+      buffer += sprintf(buffer, "%sshape 3", separator);
+      separator = ", ";
+    }
+  }
+  if (seed.tweak & COPYSYMMETRY) {
+    buffer += sprintf(buffer, "%ssame symmetry", separator);
+    separator = ", ";
+  }
+  if (seed.tweak & COPYALLBUTSYMMETRY) {
+    buffer += sprintf(buffer, "%ssame except for symmetry", separator);
+    separator = ", ";
+  }
+  sprintf(buffer, ": %d", seed.seed);
+}
+
 Flames CreateFlame(TweakedSeed seed) {
   Flames f, original;
   SecureRandom s;
@@ -250,7 +302,9 @@ void Draw(SingleHistogramGame *g) {
 
     SDL_RenderClear(g->sdlRenderer);
     SDL_RenderCopy(g->sdlRenderer, g->sdlTexture, NULL, NULL);
-    renderTextAt(g, "Hello world!", 100, 100);
+    char *buffer = malloc(1024);
+    ShowTweaked(buffer, g->on_display);
+    renderTextAt(g, buffer, 100, 100);
     SDL_RenderPresent(g->sdlRenderer);
   }
 }
@@ -372,34 +426,34 @@ void HandleMouse(SingleHistogramGame *g, int x, int y) {
       case SDL_MOUSEMOTION:
         g->x = oldx + event.motion.x - x;
         //g->y = oldy + event.motion.y - y;
-        if (event.motion.x - x > g->width/2) {
+        break;
+      case SDL_MOUSEBUTTONUP:
+        // go back!
+        g->x = oldx;
+        if (event.button.x - x > g->width/2) {
           g->x = centerx;
           g->y = centery;
           HandleRight(g);
           return;
         }
-        if (event.motion.x - x < -g->width/2) {
+        if (event.button.x - x < -g->width/2) {
           g->x = centerx;
           g->y = centery;
           HandleLeft(g);
           return;
         }
-        if (event.motion.y - y < -g->height/2) {
+        if (event.button.y - y < -g->height/2) {
           g->x = centerx;
           g->y = centery;
           HandleUp(g);
           return;
         }
-        if (event.motion.y - y > g->height/2) {
+        if (event.button.y - y > g->height/2) {
           g->x = centerx;
           g->y = centery;
           HandleDown(g);
           return;
         }
-        break;
-      case SDL_MOUSEBUTTONUP:
-        // go back!
-        g->x = oldx;
         return;
       }
     }
