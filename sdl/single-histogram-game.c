@@ -41,7 +41,7 @@ void SetOriginal(SingleHistogramGame *g) {
   g->original.tweak = NOTWEAK;
   g->original.alltweak = NOTWEAK;
   g->on_display = g->original;
-  switch (SDL_GetTicks() % 12) {
+  switch (SDL_GetTicks() % 18) {
   case 0:
     printf("Using shape of original.\n");
     g->on_display.alltweak = COPYSHAPE;
@@ -74,6 +74,12 @@ void SetOriginal(SingleHistogramGame *g) {
     printf("Maintaining all but symmetry and grayness.\n");
     g->on_display.alltweak = COPYALLBUTSYMMETRY | COPYGRAY;
     g->original.alltweak = COPYGRAY;
+    break;
+  case 11:
+  case 12:
+  case 13:
+    printf("Maintaining symmetry and grayness.\n");
+    g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR;
     break;
   default:
     printf("Using black and white.\n");
@@ -200,8 +206,21 @@ void TweakFlame(Flames *f, Flames *o, Tweak t) {
 }
 
 static inline int is_original(TweakedSeed seed) {
+  seed.tweak |= seed.alltweak;
   return seed.tweak == COPYORIGINAL ||
     seed.seed == seed.original ||
+    (seed.tweak & COPYSHAPE0 &&
+     seed.tweak & COPYSHAPE1 &&
+     seed.tweak & COPYSHAPE2 &&
+     seed.tweak & COPYSHAPE3 &&
+     seed.tweak & COPYSYMMETRY &&
+     seed.tweak & COPYGRAY) ||
+    (seed.tweak & COPYSHAPE0 &&
+     seed.tweak & COPYSHAPE1 &&
+     seed.tweak & COPYSHAPE2 &&
+     seed.tweak & COPYSHAPE3 &&
+     seed.tweak & COPYSYMMETRY &&
+     seed.tweak & COPYCOLOR) ||
     (seed.tweak & COPYSYMMETRY && seed.tweak & COPYALLBUTSYMMETRY);
 }
 
@@ -267,6 +286,7 @@ Flames CreateFlame(TweakedSeed seed) {
   Flames originalcopy = original;
   TweakFlame(&f, &originalcopy, seed.tweak);
   TweakFlame(&f, &original, seed.alltweak);
+  f.r = original.r; // use original random # seed, so identical really is identical
   return f;
 }
 
@@ -364,28 +384,42 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
 }
 
 static void NextGuess(SingleHistogramGame *g) {
+  const double frac_original = 1.0/10;
+  const double randd = (quickrand32(&g->f.r) % g->on_display.seed) / (double) g->on_display.seed;
   g->on_display.seed++;
-  int tweakness = quickrand32(&g->f.r) % 100;
-  if (tweakness < 5) {
-    g->on_display.tweak = NOTWEAK;
-  } else if (tweakness < 20) {
-    g->on_display.tweak = COPYORIGINAL;
-  } else if (tweakness < 30) {
-    g->on_display.tweak = COPYSHAPE;
-  } else if (tweakness < 35) {
-    g->on_display.tweak = COPYSHAPE0;
-  } else if (tweakness < 40) {
-    g->on_display.tweak = COPYSHAPE1;
-  } else if (tweakness < 45) {
-    g->on_display.tweak = COPYSHAPE2;
-  } else if (tweakness < 50) {
-    g->on_display.tweak = COPYSHAPE3;
-  } else if (tweakness < 70) {
-    g->on_display.tweak = COPYALLBUTSYMMETRY;
-  } else if (tweakness < 80) {
-    g->on_display.tweak = COPYCOLOR;
+  if (randd > frac_original) {
+    do {
+      int tweakness = quickrand32(&g->f.r) % 100;
+      if (tweakness < 5) {
+        g->on_display.tweak = NOTWEAK;
+      } else if (tweakness < 10) {
+        g->on_display.tweak = COPYSHAPE0 | COPYSHAPE1;
+      } else if (tweakness < 15) {
+        g->on_display.tweak = COPYSHAPE1 | COPYSHAPE2;
+      } else if (tweakness < 20) {
+        g->on_display.tweak = COPYSHAPE2 | COPYSHAPE3;
+      } else if (tweakness < 25) {
+        g->on_display.tweak = COPYSHAPE3 | COPYSHAPE0;
+      } else if (tweakness < 30) {
+        g->on_display.tweak = COPYSHAPE;
+      } else if (tweakness < 35) {
+        g->on_display.tweak = COPYSHAPE0;
+      } else if (tweakness < 40) {
+        g->on_display.tweak = COPYSHAPE1;
+      } else if (tweakness < 45) {
+        g->on_display.tweak = COPYSHAPE2;
+      } else if (tweakness < 50) {
+        g->on_display.tweak = COPYSHAPE3;
+      } else if (tweakness < 70) {
+        g->on_display.tweak = COPYALLBUTSYMMETRY;
+      } else if (tweakness < 80) {
+        g->on_display.tweak = COPYCOLOR;
+      } else {
+        g->on_display.tweak = COPYSYMMETRY;
+      }
+    } while (is_original(g->on_display));
   } else {
-    g->on_display.tweak = COPYSYMMETRY;
+    g->on_display.tweak = COPYORIGINAL;
   }
   //printf("num: %d  original: %d  tweak %d\n",
   //       g->on_display.seed, g->on_display.original, g->on_display.tweak);
