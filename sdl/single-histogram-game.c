@@ -134,6 +134,8 @@ void Init(SingleHistogramGame *g) {
   if (!g->font)
     g->font = TTF_OpenFont( "/usr/share/fonts/truetype/ttf-liberation/LiberationMono-Regular.ttf", 28 );
   if (!g->font) exitMessage("Unable to open font");
+
+  g->false_positives = g->true_positives = g->false_negatives = g->true_negatives = 0;
 }
 
 void TweakFlame(Flames *f, Flames *o, Tweak t) {
@@ -197,10 +199,15 @@ void TweakFlame(Flames *f, Flames *o, Tweak t) {
   }
 }
 
+static inline int is_original(TweakedSeed seed) {
+  return seed.tweak == COPYORIGINAL ||
+    seed.seed == seed.original ||
+    (seed.tweak & COPYSYMMETRY && seed.tweak & COPYALLBUTSYMMETRY);
+}
+
 void ShowTweaked(char *buffer, TweakedSeed seed) {
   seed.tweak |= seed.alltweak;
-  if (seed.tweak == COPYORIGINAL || seed.seed == seed.original
-      || (seed.tweak & COPYSYMMETRY && seed.tweak & COPYALLBUTSYMMETRY)) {
+  if (is_original(seed)) {
     sprintf(buffer, "original: %d", seed.original);
     return;
   }
@@ -304,7 +311,11 @@ void Draw(SingleHistogramGame *g) {
     SDL_RenderCopy(g->sdlRenderer, g->sdlTexture, NULL, NULL);
     char *buffer = malloc(1024);
     ShowTweaked(buffer, g->on_display);
-    renderTextAt(g, buffer, 100, 100);
+    renderTextAt(g, buffer, 50, 90);
+    sprintf(buffer, "false negatives:  %2d/%2d   false positives:  %2d/%2d",
+            g->false_negatives, g->true_negatives,
+            g->false_positives, g->true_positives);
+    renderTextAt(g, buffer, 50, 130);
     SDL_RenderPresent(g->sdlRenderer);
   }
 }
@@ -357,17 +368,17 @@ static void NextGuess(SingleHistogramGame *g) {
   int tweakness = quickrand32(&g->f.r) % 100;
   if (tweakness < 5) {
     g->on_display.tweak = NOTWEAK;
-  } else if (tweakness < 10) {
-    g->on_display.tweak = COPYORIGINAL;
   } else if (tweakness < 20) {
-    g->on_display.tweak = COPYSHAPE;
+    g->on_display.tweak = COPYORIGINAL;
   } else if (tweakness < 30) {
+    g->on_display.tweak = COPYSHAPE;
+  } else if (tweakness < 35) {
     g->on_display.tweak = COPYSHAPE0;
   } else if (tweakness < 40) {
     g->on_display.tweak = COPYSHAPE1;
-  } else if (tweakness < 50) {
+  } else if (tweakness < 45) {
     g->on_display.tweak = COPYSHAPE2;
-  } else if (tweakness < 60) {
+  } else if (tweakness < 50) {
     g->on_display.tweak = COPYSHAPE3;
   } else if (tweakness < 70) {
     g->on_display.tweak = COPYALLBUTSYMMETRY;
@@ -382,10 +393,24 @@ static void NextGuess(SingleHistogramGame *g) {
 }
 
 void HandleLeft(SingleHistogramGame *g) {
+  if (g->on_display.seed != g->original.seed) {
+    if (is_original(g->on_display)) {
+      g->false_negatives += 1;
+    } else {
+      g->true_negatives += 1;
+    }
+  }
   NextGuess(g);
 }
 
 void HandleRight(SingleHistogramGame *g) {
+  if (g->on_display.seed != g->original.seed) {
+    if (is_original(g->on_display)) {
+      g->true_positives += 1;
+    } else {
+      g->false_positives += 1;
+    }
+  }
   NextGuess(g);
 }
 
