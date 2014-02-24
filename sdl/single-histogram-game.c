@@ -142,6 +142,7 @@ void Init(SingleHistogramGame *g) {
   if (!g->font) exitMessage("Unable to open font");
 
   g->false_positives = g->true_positives = g->false_negatives = g->true_negatives = 0;
+  g->games_won = 0;
 }
 
 void TweakFlame(Flames *f, Flames *o, Tweak t) {
@@ -336,6 +337,8 @@ void Draw(SingleHistogramGame *g) {
             g->false_negatives, g->true_negatives,
             g->false_positives, g->true_positives);
     renderTextAt(g, buffer, 50, 130);
+    sprintf(buffer, "games won:  %2d", g->games_won);
+    renderTextAt(g, buffer, 50, 170);
     SDL_RenderPresent(g->sdlRenderer);
   }
 }
@@ -444,6 +447,11 @@ void HandleRight(SingleHistogramGame *g) {
     } else {
       g->false_positives += 1;
     }
+  }
+  if (g->true_positives == 3) {
+    // We won a game!
+    g->games_won++;
+    SetOriginal(g);
   }
   NextGuess(g);
 }

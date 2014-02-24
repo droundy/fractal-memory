@@ -41,6 +41,7 @@ typedef struct {
   int size, width, height, frame_time;
 
   int false_positives, true_positives, false_negatives, true_negatives;
+  int games_won;
 
   int x, y;
   TweakedSeed original, on_display;
