@@ -8,14 +8,13 @@ SingleHistogramGame game;
 int main(int argc, char *argv[]) {
   Init(&game);
 
-  int histnum = 1;
-
   SDL_Event event;
   int next_frame = game.frame_time;
   /* While the program is running */
   while (!SDL_AtomicGet(&game.done)) {
     int now = SDL_GetTicks();
     if (now >= next_frame) {
+      UpdateFractalTexture(&game); // this can be slow, but this is the "slow" event loop.
       Draw(&game);
       // set the next time to draw:
       next_frame = now + game.frame_time;
@@ -32,12 +31,10 @@ int main(int argc, char *argv[]) {
         HandleKey(&game, event.key.keysym.sym);
         break;
       case SDL_MOUSEBUTTONDOWN:
-        //SetFlame(&game, "", histnum++);
         HandleMouse(&game, event.button.x, event.button.y);
         break;
       case SDL_FINGERDOWN:
-        //printf("Got finger down\n");
-        //SetFlame(&game, "", histnum++);
+        // Fingers are handled by mouse events
         break;
       }
     }

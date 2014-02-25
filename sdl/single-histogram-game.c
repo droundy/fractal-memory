@@ -107,16 +107,20 @@ void Init(SingleHistogramGame *g) {
 
   SDL_GetWindowSize(sdlWindow, &g->width, &g->height);
   if (SDL_ASSERT_LEVEL > 2) printf("Size: %d, %d\n", g->width, g->height);
-  g->sdlTexture = SDL_CreateTexture(g->sdlRenderer,
-                                    SDL_PIXELFORMAT_ARGB8888,
-                                    SDL_TEXTUREACCESS_STREAMING,
-                                    g->width, g->height);
+  g->screen_texture = SDL_CreateTexture(g->sdlRenderer,
+                                        SDL_PIXELFORMAT_ARGB8888,
+                                        SDL_TEXTUREACCESS_STREAMING,
+                                        g->width, g->height);
 
   g->myPixels = (Uint32 *)calloc(g->width*g->height, sizeof(Uint32));
 
   bzero(&g->f, sizeof(Flames));
 
   g->size = 50*min(g->width, g->height)/100;
+  g->fractal_texture = SDL_CreateTexture(g->sdlRenderer,
+                                         SDL_PIXELFORMAT_ARGB8888,
+                                         SDL_TEXTUREACCESS_STREAMING,
+                                         g->size, g->size);
 
   const int topborder = (g->height - g->size)/2;
   const int leftborder = (g->width - g->size)/2;
@@ -125,8 +129,6 @@ void Init(SingleHistogramGame *g) {
 
   g->hist = (HistogramEntry *)calloc(g->size*g->size, sizeof(HistogramEntry));
   g->renderme = NULL;
-
-  SetOriginal(g);
 
   g->frame_time = 100;
 
@@ -143,6 +145,8 @@ void Init(SingleHistogramGame *g) {
 
   g->false_positives = g->true_positives = g->false_negatives = g->true_negatives = 0;
   g->games_won = 0;
+
+  SetOriginal(g);
 }
 
 void TweakFlame(Flames *f, Flames *o, Tweak t) {
@@ -302,6 +306,7 @@ void SetFlame(SingleHistogramGame *g, TweakedSeed seed) {
   /* } */
   g->f = CreateFlame(seed);
   bzero(g->hist, g->size*g->size*sizeof(HistogramEntry));
+  bzero(g->buffer, g->size*g->size*sizeof(Uint32));
   const double quality = 3;
   if (g->renderme == NULL) {
     // create a new render thread
@@ -312,6 +317,10 @@ void SetFlame(SingleHistogramGame *g, TweakedSeed seed) {
   }
 }
 
+void UpdateFractalTexture(SingleHistogramGame *g) {
+  SDL_UpdateTexture(g->fractal_texture, NULL, g->buffer, g->size * sizeof (Uint32));
+}
+
 void Draw(SingleHistogramGame *g) {
   static int count = 0;
   if (SDL_AtomicGet(&g->dirty)) {
@@ -319,17 +328,20 @@ void Draw(SingleHistogramGame *g) {
     SDL_AtomicSet(&g->dirty, 0);
 
     const int gray = (count & 0) ? 0xFF : 30;
-    memset(g->myPixels, gray, sizeof(Uint32)*g->width*g->height);
-    /* ReadHistogram(g->size, g->x, g->y, g->width, g->height, g->hist, g->myPixels); */
-    for (int ix=0; ix<g->size; ix++)
-      if (ix + g->x < g->width && ix + g->x >= 0)
-        for (int iy=0; iy<g->size; iy++)
-          if (iy + g->y < g->height && iy + g->y >= 0)
-            g->myPixels[(g->x+ix)+g->width*(g->y+iy)] = g->buffer[ix + g->size*iy];
-    SDL_UpdateTexture(g->sdlTexture, NULL, g->myPixels, g->width * sizeof (Uint32));
+    /* memset(g->myPixels, gray, sizeof(Uint32)*g->width*g->height); */
+    /* /\* ReadHistogram(g->size, g->x, g->y, g->width, g->height, g->hist, g->myPixels); *\/ */
+    /* for (int ix=0; ix<g->size; ix++) */
+    /*   if (ix + g->x < g->width && ix + g->x >= 0) */
+    /*     for (int iy=0; iy<g->size; iy++) */
+    /*       if (iy + g->y < g->height && iy + g->y >= 0) */
+    /*         g->myPixels[(g->x+ix)+g->width*(g->y+iy)] = g->buffer[ix + g->size*iy]; */
+    /* SDL_UpdateTexture(g->screen_texture, NULL, g->myPixels, g->width * sizeof (Uint32)); */
 
+    SDL_SetRenderDrawColor(g->sdlRenderer, gray, gray, gray, 255);
     SDL_RenderClear(g->sdlRenderer);
-    SDL_RenderCopy(g->sdlRenderer, g->sdlTexture, NULL, NULL);
+    SDL_Rect dst = {g->x, g->y, g->size, g->size};
+    SDL_RenderCopy(g->sdlRenderer, g->fractal_texture, NULL, &dst);
+    //SDL_RenderCopy(g->sdlRenderer, g->screen_texture, NULL, NULL);
     char *buffer = malloc(1024);
     ShowTweaked(buffer, g->on_display);
     renderTextAt(g, buffer, 50, 90);

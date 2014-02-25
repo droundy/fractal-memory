@@ -48,7 +48,8 @@ typedef struct {
   Flames f;
   HistogramEntry *hist;
   Uint32 *myPixels;
-  SDL_Texture *sdlTexture;
+  SDL_Texture *screen_texture;
+  SDL_Texture *fractal_texture;
   SDL_Renderer *sdlRenderer;
 
   SDL_sem *renderme;
@@ -63,6 +64,7 @@ typedef struct {
 extern SingleHistogramGame game;
 
 void Draw(SingleHistogramGame *game);
+void UpdateFractalTexture(SingleHistogramGame *g);
 void Init(SingleHistogramGame *game);
 void SetFlame(SingleHistogramGame *g, TweakedSeed seed);
 void HandleKey(SingleHistogramGame *g, SDL_Keycode c);
