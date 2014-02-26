@@ -17,6 +17,7 @@
     02111-1307 USA  */
 
 #include "game.h"
+#include "words.h"
 
 static inline int min(int a, int b) {
   return (a<b) ? a : b;
@@ -53,8 +54,8 @@ int FillBuffer(SingleHistogramGame *g) {
 }
 
 void SetOriginal(SingleHistogramGame *g) {
-  g->original.str = "";
-  g->original.seed = SDL_GetTicks()*1000;
+  g->original.seed = SDL_GetTicks();
+  g->original.str = words[g->original.seed % num_words];
   g->original.original = g->original.seed;
   g->original.tweak = NOTWEAK;
   g->original.alltweak = NOTWEAK;
@@ -249,6 +250,7 @@ static inline int is_original(TweakedSeed seed) {
 
 void ShowTweaked(char *buffer, TweakedSeed seed) {
   seed.tweak |= seed.alltweak;
+  buffer += sprintf(buffer, "%s => ", seed.str);
   if (is_original(seed)) {
     sprintf(buffer, "original: %d", seed.original);
     return;
