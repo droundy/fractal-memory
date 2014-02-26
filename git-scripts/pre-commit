@@ -18,9 +18,6 @@ case "$TEST" in
         ;;
     *)
         echo Testing build!
-        time go build .
-        time go test .
-        cd sdl
         scons
         echo It worked!
         ;;

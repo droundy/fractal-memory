@@ -3,3 +3,6 @@
 random-avatar
 *.jpg
 *.png
+game
+*.o
+.sconsign.dblite
