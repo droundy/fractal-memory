@@ -94,3 +94,9 @@ void HandleUp(SingleHistogramGame *g);
 void HandleDown(SingleHistogramGame *g);
 
 void renderTextAt(SingleHistogramGame *g, const char *message, int x, int y);
+
+
+int is_original(TweakedSeed seed);
+void ShowTweaked(char *buffer, TweakedSeed seed);
+void NextGuess(SingleHistogramGame *g);
+void SetOriginal(SingleHistogramGame *g);
