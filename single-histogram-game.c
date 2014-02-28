@@ -79,7 +79,7 @@ void Init(SingleHistogramGame *g) {
 
   bzero(&g->f, sizeof(Flames));
 
-  g->size = 50*min(g->width, g->height)/100;
+  g->size = 2*min(g->width, g->height)/3;
   g->fractal_texture = SDL_CreateTexture(g->sdlRenderer,
                                          SDL_PIXELFORMAT_ARGB8888,
                                          SDL_TEXTUREACCESS_STREAMING,
@@ -116,6 +116,14 @@ void UpdateFractalTexture(SingleHistogramGame *g) {
   SDL_UpdateTexture(g->fractal_texture, NULL, g->buffer, g->size * sizeof (Uint32));
 }
 
+void SaveToFile(SingleHistogramGame *g, const char *fname) {
+  SDL_Surface *surface =
+    SDL_CreateRGBSurfaceFrom(g->buffer, g->size, g->size,
+                             32, g->size*4, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+  SDL_SaveBMP(surface, fname);
+  SDL_FreeSurface(surface);
+}
+
 void Draw(SingleHistogramGame *g) {
   static int count = 0;
   if (SDL_AtomicGet(&g->dirty)) {
@@ -134,6 +142,20 @@ void Draw(SingleHistogramGame *g) {
 
     SDL_SetRenderDrawColor(g->sdlRenderer, gray, gray, gray, 255);
     SDL_RenderClear(g->sdlRenderer);
+
+    {
+      SDL_SetRenderDrawColor(g->sdlRenderer, 190, gray, gray, 255);
+      SDL_Rect dst = {g->width/2, g->height*17/20, g->width/4, g->height/10};
+      SDL_RenderFillRect(g->sdlRenderer, &dst);
+      renderTextAt(g, "Good", g->width/2+10, g->height*17/20+10);
+    }
+    {
+      SDL_SetRenderDrawColor(g->sdlRenderer, gray, 190, gray, 255);
+      SDL_Rect dst = {g->width/4, g->height*17/20, g->width/4, g->height/10};
+      SDL_RenderFillRect(g->sdlRenderer, &dst);
+      renderTextAt(g, "Bad", g->width/4+10, g->height*17/20+10);
+    }
+
     SDL_Rect dst = {g->x, g->y, g->size, g->size};
     SDL_RenderCopy(g->sdlRenderer, g->fractal_texture, NULL, &dst);
     //SDL_RenderCopy(g->sdlRenderer, g->screen_texture, NULL, NULL);
@@ -165,14 +187,7 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
     /* } */
     break;
   case SDLK_s:
-    HandleRight(g);
-    /* for (int i=0;i<6;i++) { */
-    /*   SecureRandom s; */
-    /*   init_secure_random_from_int(&s, flame_number++); */
-    /*   InitFlames(&f[i], &s); */
-    /*   bzero(hist[i], size*size*sizeof(HistogramEntry)); */
-    /*   ComputeInThread(&f[i], size, quality, hist[i]); */
-    /* } */
+    SaveToFile(g, "fractal.bmp");
     break;
   case SDLK_j:
     g->frame_time /= 2;

@@ -100,3 +100,5 @@ int is_original(TweakedSeed seed);
 void ShowTweaked(char *buffer, TweakedSeed seed);
 void NextGuess(SingleHistogramGame *g);
 void SetOriginal(SingleHistogramGame *g);
+
+void SaveToFile(SingleHistogramGame *g, const char *fname);
