@@ -93,7 +93,7 @@ void Init(SingleHistogramGame *g) {
   g->hist = (HistogramEntry *)calloc(g->size*g->size, sizeof(HistogramEntry));
   g->renderme = NULL;
 
-  g->frame_time = 100;
+  g->frame_time = 300;
 
   SDL_AtomicSet(&g->done, 0);
   SDL_AtomicSet(&g->dirty, 1);
@@ -117,11 +117,12 @@ void UpdateFractalTexture(SingleHistogramGame *g) {
 }
 
 void SaveToFile(SingleHistogramGame *g, const char *fname) {
-  SDL_Surface *surface =
-    SDL_CreateRGBSurfaceFrom(g->buffer, g->size, g->size,
-                             32, g->size*4, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-  SDL_SaveBMP(surface, fname);
-  SDL_FreeSurface(surface);
+  /* SDL_Surface *surface = */
+  /*   SDL_CreateRGBSurfaceFrom(g->buffer, g->size, g->size, */
+  /*                            32, g->size*4, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000); */
+  /* SDL_SaveBMP(surface, fname); */
+  /* SDL_FreeSurface(surface); */
+  SaveHistogram(g->size, g->hist, fname);
 }
 
 void Draw(SingleHistogramGame *g) {
@@ -131,14 +132,6 @@ void Draw(SingleHistogramGame *g) {
     SDL_AtomicSet(&g->dirty, 0);
 
     const int gray = (count & 0) ? 0xFF : 30;
-    /* memset(g->myPixels, gray, sizeof(Uint32)*g->width*g->height); */
-    /* /\* ReadHistogram(g->size, g->x, g->y, g->width, g->height, g->hist, g->myPixels); *\/ */
-    /* for (int ix=0; ix<g->size; ix++) */
-    /*   if (ix + g->x < g->width && ix + g->x >= 0) */
-    /*     for (int iy=0; iy<g->size; iy++) */
-    /*       if (iy + g->y < g->height && iy + g->y >= 0) */
-    /*         g->myPixels[(g->x+ix)+g->width*(g->y+iy)] = g->buffer[ix + g->size*iy]; */
-    /* SDL_UpdateTexture(g->screen_texture, NULL, g->myPixels, g->width * sizeof (Uint32)); */
 
     SDL_SetRenderDrawColor(g->sdlRenderer, gray, gray, gray, 255);
     SDL_RenderClear(g->sdlRenderer);
@@ -150,13 +143,17 @@ void Draw(SingleHistogramGame *g) {
       renderTextAt(g, "Good", g->width/2+10, g->height*17/20+10);
     }
     {
-      SDL_SetRenderDrawColor(g->sdlRenderer, gray, 190, gray, 255);
       SDL_Rect dst = {g->width/4, g->height*17/20, g->width/4, g->height/10};
+      SDL_SetRenderDrawColor(g->sdlRenderer, gray, 190, gray, 255);
       SDL_RenderFillRect(g->sdlRenderer, &dst);
       renderTextAt(g, "Bad", g->width/4+10, g->height*17/20+10);
     }
 
     SDL_Rect dst = {g->x, g->y, g->size, g->size};
+    //SDL_SetRenderDrawColor(g->sdlRenderer, 0, 0, 0, 255);
+    //SDL_RenderFillRect(g->sdlRenderer, &dst);
+    //SDL_SetTextureBlendMode(g->fractal_texture, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureBlendMode(g->fractal_texture, SDL_BLENDMODE_NONE);
     SDL_RenderCopy(g->sdlRenderer, g->fractal_texture, NULL, &dst);
     //SDL_RenderCopy(g->sdlRenderer, g->screen_texture, NULL, NULL);
     char *buffer = malloc(1024);
@@ -187,7 +184,7 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
     /* } */
     break;
   case SDLK_s:
-    SaveToFile(g, "fractal.bmp");
+    SaveToFile(g, "fractal.pam");
     break;
   case SDLK_j:
     g->frame_time /= 2;

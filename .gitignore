@@ -3,6 +3,7 @@
 random-avatar
 *.jpg
 *.png
+fractal.pam
 game
 *.o
 .sconsign.dblite

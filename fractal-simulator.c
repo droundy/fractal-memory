@@ -259,15 +259,36 @@ void Compute(SDL_atomic_t *done, SDL_atomic_t *dirty,
   //printf("Finished Compute!\n");
 }
 
-static Uint32 RGB(double r, double g, double b) {
+static inline Uint32 RGB(double r, double g, double b) {
   if (r < 0) r = 0;
   if (g < 0) g = 0;
   if (b < 0) b = 0;
+  if (r > 1) r = 1;
+  if (g > 1) r = 1;
+  if (b > 1) r = 1;
   return 0xFF000000 + (int)(r*256)*0x10000 + (int)(g*256)*0x100 + (int)(b*256);
 }
 
-void ReadHistogram(int size, int x, int y, int width, int height,
-                   HistogramEntry *hist, Uint32 *rgb) {
+static inline Uint32 ARGB(double a, double r, double g, double b) {
+  if (a < 0) a = 0;
+  if (r < 0) r = 0;
+  if (g < 0) g = 0;
+  if (b < 0) b = 0;
+  if (a > 1) a = 1;
+  if (r > 1) r = 1;
+  if (g > 1) r = 1;
+  if (b > 1) r = 1;
+  return (int)(a*256)*0x01000000 + (int)(r*256)*0x10000 + (int)(g*256)*0x100 + (int)(b*256);
+}
+
+typedef enum { TRANSPARENT, OPAQUE } read_histogram_option;
+
+static void ReadHistogramFlexible(int size, int x, int y, int width, int height,
+                                  HistogramEntry *hist, Uint32 *rgb, FILE *f,
+                                  read_histogram_option option) {
+  if (f)
+    fprintf(f, "P7\nWIDTH %d\nHEIGHT %d\nDEPTH 4\nMAXVAL 255\nTUPLTYPE RGB_ALPHA\nENDHDR\n",
+            width, height);
 	double filling = 0.0;
   const int N = size*size;
 	for (int i=0;i<N;i++) {
@@ -319,20 +340,67 @@ void ReadHistogram(int size, int x, int y, int width, int height,
       for (int iy=0; iy<size; iy++) {
         if (iy + y < height && iy + y >= 0) {
           const int n = ix + size*iy;
+          double a = 0, r = 0, g = 0, b = 0;
           if (hist[n].A > 0) {
             // a(minA)*histA == 0
             // I wish that... a(maxA)*histA == 1 ... but it's not true
             // a(meanA)*histA == 0.5
-            const double a = norm*log(factor*hist[n].A)/hist[n].A;
-            //printf(ix, iy, a, hist[n].A)
-            rgb[(x+ix)+width*(y+iy)] = RGB(hist[n].R*a, hist[n].G*a, hist[n].B*a);
-          } else {
-            rgb[(x+ix)+width*(y+iy)] = 0xFF000000;
+            a = norm*log(factor*hist[n].A);
+            b = hist[n].B/hist[n].A;
+            r = hist[n].R/hist[n].A;
+            g = hist[n].G/hist[n].A;
+          }
+          if (rgb) {
+            switch (option) {
+            case OPAQUE:
+              rgb[(x+ix)+width*(y+iy)] = RGB(a*r, a*b, a*g);
+              break;
+            case TRANSPARENT:
+              rgb[(x+ix)+width*(y+iy)] = ARGB(a, r, g, b);
+              break;
+            }
+          }
+          if (f) {
+            // The following saves the histogram to a PAM file.  I
+            // have tuned this so as to give reasonable transparency
+            // and look nice.
+            r *= a;
+            g *= a;
+            b *= a;
+            const double cutoff = 0.3;
+            if (a > cutoff) {
+              a = 1;
+            } else {
+              a = a/cutoff;
+            }
+            if ((ix-size/2)*(ix-size/2) + (iy-size/2)*(iy-size/2) > size*size/4) {
+              a = 0;
+            }
+            fputc((int)(r*255), f);
+            fputc((int)(g*255), f);
+            fputc((int)(b*255), f);
+            fputc((int)(a*255), f);
           }
         }
       }
     }
   }
+}
+
+void SaveHistogram(int size, HistogramEntry *hist, const char *fname) {
+  FILE *f = fopen(fname, "wb");
+  ReadHistogramFlexible(size, 0, 0, size, size, hist, NULL, f, TRANSPARENT);
+  fclose(f);
+}
+
+void ReadHistogram(int size, int x, int y, int width, int height,
+                   HistogramEntry *hist, Uint32 *rgb) {
+  ReadHistogramFlexible(size, x, y, width, height, hist, rgb, NULL, OPAQUE);
+}
+
+void ReadHistogramTransparent(int size, int x, int y, int width, int height,
+                              HistogramEntry *hist, Uint32 *argb) {
+  ReadHistogramFlexible(size, x, y, width, height, hist, argb, NULL, TRANSPARENT);
 }
 
 struct Computation {
