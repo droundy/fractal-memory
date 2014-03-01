@@ -7,3 +7,24 @@ fractal.pam
 game
 *.o
 .sconsign.dblite
+
+
+# for xcode:
+.DS_Store
+*.moved-aside
+xcuserdata
+*.pbxuser
+build/
+DerivedData/
+*~.nib
+.Trashes
+*.swp
+*.lock
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+!default.pbxuser
+!default.mode1v3
+!default.mode2v3
+!default.perspectivev3
+
