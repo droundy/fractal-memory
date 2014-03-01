@@ -81,6 +81,8 @@ void Init(SingleHistogramGame *g) {
   bzero(&g->f, sizeof(Flames));
 
   g->size = 2*min(g->width, g->height)/3;
+  g->fontsize = min(g->width/40, g->height/40);
+  printf("fontsize %d\n", g->fontsize);
   g->fractal_texture = SDL_CreateTexture(g->sdlRenderer,
                                          SDL_PIXELFORMAT_ARGB8888,
                                          SDL_TEXTUREACCESS_STREAMING,
@@ -100,9 +102,10 @@ void Init(SingleHistogramGame *g) {
   g->buffer = (Uint32 *)calloc(g->size*g->size, sizeof(Uint32));
   g->buffer_filler = SDL_CreateThread((SDL_ThreadFunction)FillBuffer, "Fill buffer", (void *)g);
 
-  g->font = TTF_OpenFont( "LiberationMono-Regular.ttf", 28 );
+  g->font = TTF_OpenFont( "LiberationMono-Regular.ttf", g->fontsize );
   if (!g->font)
-    g->font = TTF_OpenFont( "/usr/share/fonts/truetype/ttf-liberation/LiberationMono-Regular.ttf", 28 );
+    g->font = TTF_OpenFont( "/usr/share/fonts/truetype/ttf-liberation/LiberationMono-Regular.ttf",
+                            g->fontsize );
   if (!g->font) exitMessage("Unable to open font");
 
   g->false_positives = g->true_positives = g->false_negatives = g->true_negatives = 0;
@@ -160,7 +163,7 @@ void Draw(SingleHistogramGame *g) {
     //SDL_RenderCopy(g->sdlRenderer, g->screen_texture, NULL, NULL);
     char *buffer = malloc(1024);
     ShowTweaked(buffer, g->on_display);
-    renderTextAt(g, buffer, 50, 90);
+    renderTextAt(g, buffer, g->fontsize, g->fontsize);
     if (g->on_display.seed == g->original.seed) {
       sprintf(buffer, "Remember this shape carefully!");
     } else {
@@ -168,9 +171,9 @@ void Draw(SingleHistogramGame *g) {
               g->false_negatives, g->true_negatives,
               g->false_positives, g->true_positives);
     }
-    renderTextAt(g, buffer, 50, 130);
+    renderTextAt(g, buffer, g->fontsize, 5*g->fontsize/2);
     sprintf(buffer, "games won:  %2d", g->games_won);
-    renderTextAt(g, buffer, 50, 170);
+    renderTextAt(g, buffer, g->fontsize, 8*g->fontsize/2);
     SDL_RenderPresent(g->sdlRenderer);
   }
 }
