@@ -20,6 +20,7 @@
 #include "words.h"
 
 void SetOriginal(SingleHistogramGame *g) {
+  g->backR = g->backG = g->backB = background_gray;
   g->original.seed = SDL_GetTicks();
   g->original.str = words[g->original.seed % num_words];
   g->original.original = g->original.seed;
@@ -76,6 +77,7 @@ void SetOriginal(SingleHistogramGame *g) {
 }
 
 void NextGuess(SingleHistogramGame *g) {
+  g->backR = g->backG = g->backB = background_gray;
   const double frac_original = 1.0/10;
   const double randd = (quickrand32(&g->f.r) % g->on_display.seed) / (double) g->on_display.seed;
   g->on_display.seed++;

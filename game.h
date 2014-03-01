@@ -24,6 +24,8 @@
 
 #include "fractal-flames.h"
 
+static const int background_gray = 30;
+
 static inline  void exitMessage(const char *msg) {
   fprintf(stderr, "%s\n", msg);
   SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
@@ -58,6 +60,7 @@ typedef struct {
 typedef struct {
   int size, width, height, frame_time;
   int fontsize, buttonwidth, buttonheight;
+  int backR, backG, backB;
 
   int false_positives, true_positives, false_negatives, true_negatives;
   int games_won;

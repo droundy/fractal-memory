@@ -170,6 +170,12 @@ static inline SDL_Rect BadButton(SingleHistogramGame *g) {
                   g->buttonwidth, g->buttonheight};
   return dst;
 }
+static inline SDL_Rect ResetButton(SingleHistogramGame *g) {
+  SDL_Rect dst = {3*g->width/4 - g->buttonwidth/2,
+                  (g->y - g->buttonheight)/2,
+                  g->buttonwidth, g->buttonheight};
+  return dst;
+}
 static inline SDL_bool InRect(SDL_Point p, SDL_Rect r) {
   return p.x > r.x && p.y > r.y && p.x < r.x+r.w && p.y < r.y+r.h;
 }
@@ -180,22 +186,40 @@ void Draw(SingleHistogramGame *g) {
     count++;
     SDL_AtomicSet(&g->bufferdirty, 0);
 
-    const int gray = (count & 0) ? 0xFF : 30;
-
-    SDL_SetRenderDrawColor(g->sdlRenderer, gray, gray, gray, 255);
+    SDL_SetRenderDrawColor(g->sdlRenderer, g->backR, g->backG, g->backB, 255);
     SDL_RenderClear(g->sdlRenderer);
 
     {
-      SDL_SetRenderDrawColor(g->sdlRenderer, 255, gray, gray, 255);
+      SDL_SetRenderDrawColor(g->sdlRenderer, g->backR, g->backG, 255, 255);
+      SDL_Rect dst = ResetButton(g);
+      SDL_RenderFillRect(g->sdlRenderer, &dst);
+      renderTextCenteredAt(g, "Reset", dst.x + dst.w/2, dst.y + dst.h/2);
+    }
+    {
+      if (g->on_display.seed != g->original.seed) {
+        SDL_SetRenderDrawColor(g->sdlRenderer, 255, g->backG, g->backB, 255);
+      } else {
+        SDL_SetRenderDrawColor(g->sdlRenderer, (255+3*g->backR)/4, g->backG, g->backB, 255);
+      }
+      SDL_Rect dst = BadButton(g);
+      SDL_RenderFillRect(g->sdlRenderer, &dst);
+      renderTextCenteredAt(g, "Bad", dst.x + dst.w/2, dst.y + dst.h/2);
+    }
+    if (g->on_display.seed != g->original.seed) {
+      SDL_SetRenderDrawColor(g->sdlRenderer, 255, g->backG, g->backB, 255);
       SDL_Rect dst = BadButton(g);
       SDL_RenderFillRect(g->sdlRenderer, &dst);
       renderTextCenteredAt(g, "Bad", dst.x + dst.w/2, dst.y + dst.h/2);
     }
     {
       SDL_Rect dst = GoodButton(g);
-      SDL_SetRenderDrawColor(g->sdlRenderer, gray, 150, gray, 255);
+      SDL_SetRenderDrawColor(g->sdlRenderer, g->backR, 150, g->backB, 255);
       SDL_RenderFillRect(g->sdlRenderer, &dst);
-      renderTextCenteredAt(g, "Good", dst.x + dst.w/2, dst.y + dst.h/2);
+      if (g->on_display.seed == g->original.seed) {
+        renderTextCenteredAt(g, "Start!", dst.x + dst.w/2, dst.y + dst.h/2);
+      } else {
+        renderTextCenteredAt(g, "Good", dst.x + dst.w/2, dst.y + dst.h/2);
+      }
     }
 
     SDL_Rect dst = {g->x, g->y, g->size, g->size};
@@ -221,6 +245,7 @@ void Draw(SingleHistogramGame *g) {
     }
     sprintf(buffer, "games won:  %2d", g->games_won);
     renderTextAt(g, buffer, g->fontsize, 11*g->fontsize/2);
+
     SDL_RenderPresent(g->sdlRenderer);
   }
 }
@@ -309,8 +334,11 @@ void HandleMouse(SingleHistogramGame *g, int x, int y) {
   if (InRect(p, GoodButton(g))) {
     HandleRight(g);
     return;
-  } else if (InRect(p, BadButton(g))) {
+  } else if (InRect(p, BadButton(g)) && g->on_display.seed != g->original.seed) {
     HandleLeft(g);
+    return;
+  } else if (InRect(p, ResetButton(g))) {
+    HandleUp(g);
     return;
   }
   while (!SDL_AtomicGet(&g->done)) {
@@ -331,17 +359,25 @@ void HandleMouse(SingleHistogramGame *g, int x, int y) {
         g->x = oldx + event.motion.x - x;
         SDL_AtomicSet(&g->bufferdirty, 1);
         //g->y = oldy + event.motion.y - y;
+        g->backR = background_gray;
+        g->backG = background_gray;
+        g->backB = background_gray;
+        if (event.button.x - x > g->width/3) {
+          g->backG = 3*background_gray;
+        } else if (event.button.x - x < -g->width/3) {
+          g->backR = 3*background_gray;
+        }
         break;
       case SDL_MOUSEBUTTONUP:
         // go back!
         g->x = oldx;
-        if (event.button.x - x > g->width/2) {
+        if (event.button.x - x > g->width/3) {
           g->x = centerx;
           g->y = centery;
           HandleRight(g);
           return;
         }
-        if (event.button.x - x < -g->width/2) {
+        if (event.button.x - x < -g->width/3) {
           g->x = centerx;
           g->y = centery;
           HandleLeft(g);
