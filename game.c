@@ -32,19 +32,22 @@ int main(int argc, char *argv[]) {
   while (!SDL_AtomicGet(&game.done)) {
     int now = SDL_GetTicks();
     if (now >= next_frame) {
-      UpdateFractalTexture(&game); // this can be slow, but this is the "slow" event loop.
-      Draw(&game);
-      // set the next time to draw:
-      next_frame = now + game.frame_time;
+      if (SDL_AtomicGet(&game.display_on)) { // only do drawing when the window is visible
+        UpdateFractalTexture(&game); // this can be slow, but this is the "slow" event loop.
+        Draw(&game);
+        // set the next time to draw:
+        next_frame = now + game.frame_time;
+      } else {
+        next_frame = now + 100*game.frame_time;
+      }
     }
     /* Check for new events */
     if (SDL_WaitEventTimeout(&event, next_frame - now)) {
-      /* If a quit event has been sent */
-      if (event.type == SDL_QUIT) {
+      switch (event.type) {
+      case SDL_QUIT:
         /* Quit the application */
         SDL_AtomicSet(&game.done, 1);
-      }
-      switch (event.type) {
+        break;
       case SDL_KEYDOWN:
         HandleKey(&game, event.key.keysym.sym);
         break;
@@ -53,6 +56,22 @@ int main(int argc, char *argv[]) {
         break;
       case SDL_FINGERDOWN:
         // Fingers are handled by mouse events
+        break;
+      case SDL_APP_WILLENTERBACKGROUND:
+        PauseGame(&game);
+        break;
+      case SDL_APP_DIDENTERFOREGROUND:
+        ResumeGame(&game);
+        break;
+      case SDL_WINDOWEVENT:
+        switch (event.window.event) {
+        case SDL_WINDOWEVENT_SHOWN:
+          ResumeGame(&game);
+          break;
+        case SDL_WINDOWEVENT_HIDDEN:
+          PauseGame(&game);
+          break;
+        }
         break;
       }
     }

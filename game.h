@@ -69,9 +69,10 @@ typedef struct {
   SDL_Texture *screen_texture;
   SDL_Texture *fractal_texture;
   SDL_Renderer *sdlRenderer;
+  SDL_Window *sdlWindow;
 
   SDL_sem *renderme;
-  SDL_atomic_t done, dirty;
+  SDL_atomic_t done, dirty, bufferdirty, display_on;
 
   // The buffer holds the fractal image and is filled by the buffer_filler
   Uint32 *buffer;
@@ -102,3 +103,6 @@ void NextGuess(SingleHistogramGame *g);
 void SetOriginal(SingleHistogramGame *g);
 
 void SaveToFile(SingleHistogramGame *g, const char *fname);
+
+void PauseGame(SingleHistogramGame *g);
+void ResumeGame(SingleHistogramGame *g);

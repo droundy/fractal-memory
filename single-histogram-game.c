@@ -47,7 +47,9 @@ void renderTextAt(SingleHistogramGame *g, const char *message, int x, int y) {
 
 int FillBuffer(SingleHistogramGame *g) {
   while (!SDL_AtomicGet(&g->done)) {
-    ReadHistogram(g->size, 0, 0, g->size, g->size, g->hist, g->buffer);
+    if (SDL_AtomicGet(&g->display_on)) {
+      ReadHistogram(g->size, 0, 0, g->size, g->size, g->hist, g->buffer);
+    }
     SDL_Delay(g->frame_time);
   }
   return 0;
@@ -61,14 +63,13 @@ void Init(SingleHistogramGame *g) {
     exit(2);
   }
 
-  SDL_Window *sdlWindow;
   SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP,
-                              &sdlWindow, &g->sdlRenderer);
-  if (!g->sdlRenderer || !sdlWindow) {
+                              &g->sdlWindow, &g->sdlRenderer);
+  if (!g->sdlRenderer || !g->sdlWindow) {
     exitMessage("Unable to create window!");
   }
 
-  SDL_GetWindowSize(sdlWindow, &g->width, &g->height);
+  SDL_GetWindowSize(g->sdlWindow, &g->width, &g->height);
   if (SDL_ASSERT_LEVEL > 2) printf("Size: %d, %d\n", g->width, g->height);
   g->screen_texture = SDL_CreateTexture(g->sdlRenderer,
                                         SDL_PIXELFORMAT_ARGB8888,
@@ -93,10 +94,8 @@ void Init(SingleHistogramGame *g) {
   g->hist = (HistogramEntry *)calloc(g->size*g->size, sizeof(HistogramEntry));
   g->renderme = NULL;
 
-  g->frame_time = 300;
-
   SDL_AtomicSet(&g->done, 0);
-  SDL_AtomicSet(&g->dirty, 1);
+  ResumeGame(g); // sets frame_time, and dirty buffers, etc.
 
   g->buffer = (Uint32 *)calloc(g->size*g->size, sizeof(Uint32));
   g->buffer_filler = SDL_CreateThread((SDL_ThreadFunction)FillBuffer, "Fill buffer", (void *)g);
@@ -113,7 +112,10 @@ void Init(SingleHistogramGame *g) {
 }
 
 void UpdateFractalTexture(SingleHistogramGame *g) {
-  SDL_UpdateTexture(g->fractal_texture, NULL, g->buffer, g->size * sizeof (Uint32));
+  if (SDL_AtomicGet(&g->dirty) && SDL_AtomicGet(&g->display_on)) {
+    SDL_UpdateTexture(g->fractal_texture, NULL, g->buffer, g->size * sizeof (Uint32));
+    SDL_AtomicSet(&g->bufferdirty, 1);
+  }
 }
 
 void SaveToFile(SingleHistogramGame *g, const char *fname) {
@@ -127,9 +129,9 @@ void SaveToFile(SingleHistogramGame *g, const char *fname) {
 
 void Draw(SingleHistogramGame *g) {
   static int count = 0;
-  if (SDL_AtomicGet(&g->dirty)) {
+  if (SDL_AtomicGet(&g->bufferdirty) && SDL_AtomicGet(&g->display_on)) {
     count++;
-    SDL_AtomicSet(&g->dirty, 0);
+    SDL_AtomicSet(&g->bufferdirty, 0);
 
     const int gray = (count & 0) ? 0xFF : 30;
 
@@ -307,4 +309,16 @@ void HandleMouse(SingleHistogramGame *g, int x, int y) {
       }
     }
   }
+}
+
+void PauseGame(SingleHistogramGame *g) {
+  SDL_AtomicSet(&game.display_on, 0);
+  g->frame_time = 1000; // once per second.
+}
+
+void ResumeGame(SingleHistogramGame *g) {
+  SDL_AtomicSet(&g->bufferdirty, 1);
+  SDL_AtomicSet(&g->dirty, 1);
+  SDL_AtomicSet(&game.display_on, 1);
+  g->frame_time = 300;
 }
