@@ -190,7 +190,7 @@ void Draw(SingleHistogramGame *g) {
     SDL_RenderClear(g->sdlRenderer);
 
     {
-      SDL_SetRenderDrawColor(g->sdlRenderer, g->backR, g->backG, 255, 255);
+      SDL_SetRenderDrawColor(g->sdlRenderer, g->backR, g->backG, 200, 255);
       SDL_Rect dst = ResetButton(g);
       SDL_RenderFillRect(g->sdlRenderer, &dst);
       renderTextCenteredAt(g, "Reset", dst.x + dst.w/2, dst.y + dst.h/2);
@@ -201,12 +201,6 @@ void Draw(SingleHistogramGame *g) {
       } else {
         SDL_SetRenderDrawColor(g->sdlRenderer, (255+3*g->backR)/4, g->backG, g->backB, 255);
       }
-      SDL_Rect dst = BadButton(g);
-      SDL_RenderFillRect(g->sdlRenderer, &dst);
-      renderTextCenteredAt(g, "Bad", dst.x + dst.w/2, dst.y + dst.h/2);
-    }
-    if (g->on_display.seed != g->original.seed) {
-      SDL_SetRenderDrawColor(g->sdlRenderer, 255, g->backG, g->backB, 255);
       SDL_Rect dst = BadButton(g);
       SDL_RenderFillRect(g->sdlRenderer, &dst);
       renderTextCenteredAt(g, "Bad", dst.x + dst.w/2, dst.y + dst.h/2);
