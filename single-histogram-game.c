@@ -23,6 +23,10 @@ static inline int min(int a, int b) {
   return (a<b) ? a : b;
 }
 
+static inline int max(int a, int b) {
+  return (a>b) ? a : b;
+}
+
 void renderTextAt(SingleHistogramGame *g, const char *message, int x, int y) {
   //We need to first render to a surface as that's what TTF_RenderText
   //returns, then load that surface into a texture
@@ -40,6 +44,28 @@ void renderTextAt(SingleHistogramGame *g, const char *message, int x, int y) {
   dst.y = y;
   //Query the texture to get its width and height to use
   SDL_QueryTexture(texture, NULL, NULL, &dst.w, &dst.h);
+  SDL_RenderCopy(g->sdlRenderer, texture, NULL, &dst);
+
+  SDL_DestroyTexture(texture);
+}
+
+void renderTextCenteredAt(SingleHistogramGame *g, const char *message, int x, int y) {
+  //We need to first render to a surface as that's what TTF_RenderText
+  //returns, then load that surface into a texture
+  SDL_Color color = { 255, 255, 255 };
+  SDL_Surface *surf = TTF_RenderText_Blended(g->font, message, color);
+  if (surf == NULL) exitMessage("Trouble creating surface");
+  SDL_Texture *texture = SDL_CreateTextureFromSurface(g->sdlRenderer, surf);
+  if (texture == NULL) exitMessage("Trouble making texture");
+  //Clean up the surface and font
+  SDL_FreeSurface(surf);
+
+  //Setup the destination rectangle to be at the position we want
+  SDL_Rect dst;
+  //Query the texture to get its width and height to use
+  SDL_QueryTexture(texture, NULL, NULL, &dst.w, &dst.h);
+  dst.x = x - dst.w/2;
+  dst.y = y - dst.h/2;
   SDL_RenderCopy(g->sdlRenderer, texture, NULL, &dst);
 
   SDL_DestroyTexture(texture);
@@ -81,7 +107,9 @@ void Init(SingleHistogramGame *g) {
   bzero(&g->f, sizeof(Flames));
 
   g->size = 2*min(g->width, g->height)/3;
-  g->fontsize = min(g->width/40, g->height/40);
+  g->fontsize = min(g->width/30, g->height/40);
+  g->buttonwidth = min(g->width*5/12, g->fontsize*20);
+  g->buttonheight = max(g->fontsize*3, g->buttonwidth/4);
   printf("fontsize %d\n", g->fontsize);
   g->fractal_texture = SDL_CreateTexture(g->sdlRenderer,
                                          SDL_PIXELFORMAT_ARGB8888,
@@ -130,6 +158,22 @@ void SaveToFile(SingleHistogramGame *g, const char *fname) {
   SaveHistogram(g->size, g->hist, fname);
 }
 
+static inline SDL_Rect GoodButton(SingleHistogramGame *g) {
+  SDL_Rect dst = {3*g->width/4 - g->buttonwidth/2,
+                  (g->height + g->y + g->size - g->buttonheight)/2,
+                  g->buttonwidth, g->buttonheight};
+  return dst;
+}
+static inline SDL_Rect BadButton(SingleHistogramGame *g) {
+  SDL_Rect dst = {g->width/4 - g->buttonwidth/2,
+                  (g->height + g->y + g->size - g->buttonheight)/2,
+                  g->buttonwidth, g->buttonheight};
+  return dst;
+}
+static inline SDL_bool InRect(SDL_Point p, SDL_Rect r) {
+  return p.x > r.x && p.y > r.y && p.x < r.x+r.w && p.y < r.y+r.h;
+}
+
 void Draw(SingleHistogramGame *g) {
   static int count = 0;
   if (SDL_AtomicGet(&g->bufferdirty) && SDL_AtomicGet(&g->display_on)) {
@@ -142,16 +186,16 @@ void Draw(SingleHistogramGame *g) {
     SDL_RenderClear(g->sdlRenderer);
 
     {
-      SDL_SetRenderDrawColor(g->sdlRenderer, 190, gray, gray, 255);
-      SDL_Rect dst = {g->width/2, g->height*17/20, g->width/4, g->height/10};
+      SDL_SetRenderDrawColor(g->sdlRenderer, 255, gray, gray, 255);
+      SDL_Rect dst = BadButton(g);
       SDL_RenderFillRect(g->sdlRenderer, &dst);
-      renderTextAt(g, "Good", g->width/2+10, g->height*17/20+10);
+      renderTextCenteredAt(g, "Bad", dst.x + dst.w/2, dst.y + dst.h/2);
     }
     {
-      SDL_Rect dst = {g->width/4, g->height*17/20, g->width/4, g->height/10};
-      SDL_SetRenderDrawColor(g->sdlRenderer, gray, 190, gray, 255);
+      SDL_Rect dst = GoodButton(g);
+      SDL_SetRenderDrawColor(g->sdlRenderer, gray, 150, gray, 255);
       SDL_RenderFillRect(g->sdlRenderer, &dst);
-      renderTextAt(g, "Bad", g->width/4+10, g->height*17/20+10);
+      renderTextCenteredAt(g, "Good", dst.x + dst.w/2, dst.y + dst.h/2);
     }
 
     SDL_Rect dst = {g->x, g->y, g->size, g->size};
@@ -166,14 +210,17 @@ void Draw(SingleHistogramGame *g) {
     renderTextAt(g, buffer, g->fontsize, g->fontsize);
     if (g->on_display.seed == g->original.seed) {
       sprintf(buffer, "Remember this shape carefully!");
+      renderTextAt(g, buffer, g->fontsize, 6.5*g->fontsize/2);
     } else {
-      sprintf(buffer, "false negatives:  %2d/%2d   false positives:  %2d/%2d",
-              g->false_negatives, g->true_negatives,
+      sprintf(buffer, "false negatives:  %2d/%2d",
+              g->false_negatives, g->true_negatives);
+      renderTextAt(g, buffer, g->fontsize, 5*g->fontsize/2);
+      sprintf(buffer, "false positives:  %2d/%2d",
               g->false_positives, g->true_positives);
+      renderTextAt(g, buffer, g->fontsize, 8*g->fontsize/2);
     }
-    renderTextAt(g, buffer, g->fontsize, 5*g->fontsize/2);
     sprintf(buffer, "games won:  %2d", g->games_won);
-    renderTextAt(g, buffer, g->fontsize, 8*g->fontsize/2);
+    renderTextAt(g, buffer, g->fontsize, 11*g->fontsize/2);
     SDL_RenderPresent(g->sdlRenderer);
   }
 }
@@ -253,32 +300,36 @@ void HandleDown(SingleHistogramGame *g) {
 
 void HandleMouse(SingleHistogramGame *g, int x, int y) {
   SDL_Event event;
-  int next_frame = 0;
   int oldx = g->x; // , oldy = g->y;
   const int topborder = (g->height - g->size)/2;
   const int leftborder = (g->width - g->size)/2;
   const int centerx = leftborder;
   const int centery = topborder;
-  while (!SDL_AtomicGet(&game.done)) {
-    int now = SDL_GetTicks();
-    if (now >= next_frame) {
-      Draw(&game);
-      // set the next time to draw:
-      next_frame = now + game.frame_time;
-    }
+  SDL_Point p = {x,y};
+  if (InRect(p, GoodButton(g))) {
+    HandleRight(g);
+    return;
+  } else if (InRect(p, BadButton(g))) {
+    HandleLeft(g);
+    return;
+  }
+  while (!SDL_AtomicGet(&g->done)) {
+    Draw(g);
+    // set the next time to draw:
     /* Check for new events */
-    if (SDL_WaitEventTimeout(&event, next_frame - now)) {
+    if (SDL_WaitEventTimeout(&event, 10)) {
       /* If a quit event has been sent */
       if (event.type == SDL_QUIT) {
         /* Quit the application */
-        SDL_AtomicSet(&game.done, 1);
+        SDL_AtomicSet(&g->done, 1);
       }
       switch (event.type) {
       case SDL_KEYDOWN:
-        HandleKey(&game, event.key.keysym.sym);
+        HandleKey(g, event.key.keysym.sym);
         break;
       case SDL_MOUSEMOTION:
         g->x = oldx + event.motion.x - x;
+        SDL_AtomicSet(&g->bufferdirty, 1);
         //g->y = oldy + event.motion.y - y;
         break;
       case SDL_MOUSEBUTTONUP:
