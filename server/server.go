@@ -14,7 +14,7 @@ func handleConnection(c net.Conn) {
 	var name string
 	n, err := fmt.Fscanln(c, &name)
 	if n != 1 || err != nil {
-		fmt.Println("unable to read from conn!\n", c.RemoteAddr())
+		fmt.Println("unable to read from conn: ", c.RemoteAddr(), n, err)
 		return
 	}
 	if strings.ContainsAny(name, "/ \t\n") || strings.Count(name, "..") > 0 {
