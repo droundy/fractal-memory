@@ -27,50 +27,35 @@ void SetOriginal(SingleHistogramGame *g) {
   g->original.tweak = NOTWEAK;
   g->original.alltweak = NOTWEAK;
   g->on_display = g->original;
-  switch (SDL_GetTicks() % 18) {
+  switch (SDL_GetTicks() % 10) {
   case 0:
-    printf("Using shape of original.\n");
-    g->on_display.alltweak = COPYSHAPE;
+    // no tweak!
     break;
   case 1:
-    printf("Using color of original.\n");
-    g->on_display.alltweak = COPYCOLOR;
-    break;
   case 2:
-    printf("No tweaks.\n");
+    printf("Using all but color.\n");
+    g->on_display.alltweak = COPYSHAPE | COPYSYMMETRY;
     break;
   case 3:
   case 4:
-    printf("Maintaining symmetry.\n");
-    g->on_display.alltweak = COPYSYMMETRY;
-    break;
-  case 5:
-  case 6:
     printf("Maintaining symmetry and grayness.\n");
     g->on_display.alltweak = COPYSYMMETRY | COPYGRAY;
     g->original.alltweak = COPYGRAY;
     break;
-  case 7:
-  case 8:
+  case 5:
+  case 6:
     printf("Maintaining all but symmetry.\n");
     g->on_display.alltweak = COPYALLBUTSYMMETRY;
     break;
-  case 9:
-  case 10:
+  case 7:
     printf("Maintaining all but symmetry and grayness.\n");
     g->on_display.alltweak = COPYALLBUTSYMMETRY | COPYGRAY;
     g->original.alltweak = COPYGRAY;
     break;
-  case 11:
-  case 12:
-  case 13:
-    printf("Maintaining symmetry and grayness.\n");
+  case 8:
+  case 9:
+    printf("Maintaining symmetry and color.\n");
     g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR;
-    break;
-  default:
-    printf("Using black and white.\n");
-    g->on_display.alltweak = COPYGRAY;
-    g->original.alltweak = COPYGRAY;
     break;
   }
   SetFlame(g, g->on_display);
@@ -84,7 +69,7 @@ void NextGuess(SingleHistogramGame *g) {
   if (randd > frac_original) {
     do {
       int tweakness = quickrand32(&g->f.r) % 100;
-      if (tweakness < 5) {
+      if (tweakness < 5 || 1) {
         g->on_display.tweak = NOTWEAK;
       } else if (tweakness < 10) {
         g->on_display.tweak = COPYSHAPE0 | COPYSHAPE1;
@@ -254,12 +239,17 @@ void ShowTweaked(char *buffer, TweakedSeed seed) {
 
 Flames CreateFlame(TweakedSeed seed) {
   Flames f, original;
-  SecureRandom s;
   SecureRandom o;
-  init_secure_random_from_both(&s, seed.str, seed.seed);
   init_secure_random_from_both(&o, seed.str, seed.original);
-  InitFlames(&f, &s);
   InitFlames(&original, &o);
+  if (is_original(seed)) {
+    InitFlames(&f, &o);
+    TweakFlame(&f, &original, seed.alltweak);
+    return f;
+  }
+  SecureRandom s;
+  init_secure_random_from_both(&s, seed.str, seed.seed);
+  InitFlames(&f, &s);
   Flames originalcopy = original;
   TweakFlame(&f, &originalcopy, seed.tweak);
   TweakFlame(&f, &original, seed.alltweak);
