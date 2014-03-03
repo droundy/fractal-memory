@@ -38,11 +38,12 @@ int main(int argc, char *argv[]) {
         // set the next time to draw:
         next_frame = now + game.frame_time;
       } else {
-        next_frame = now + 100*game.frame_time;
+        next_frame = now + game.frame_time;
       }
     }
     /* Check for new events */
-    if (SDL_WaitEventTimeout(&event, next_frame - now)) {
+    int wait_time = (SDL_AtomicGet(&game.display_on)) ? next_frame - now : 50000;
+    if (SDL_WaitEventTimeout(&event, wait_time)) {
       switch (event.type) {
       case SDL_QUIT:
         /* Quit the application */
@@ -58,17 +59,21 @@ int main(int argc, char *argv[]) {
         // Fingers are handled by mouse events
         break;
       case SDL_APP_WILLENTERBACKGROUND:
+        printf("Entering background\n");
         PauseGame(&game);
         break;
       case SDL_APP_DIDENTERFOREGROUND:
+        printf("Entering foreground\n");
         ResumeGame(&game);
         break;
       case SDL_WINDOWEVENT:
         switch (event.window.event) {
         case SDL_WINDOWEVENT_SHOWN:
+          printf("Window shown\n");
           ResumeGame(&game);
           break;
         case SDL_WINDOWEVENT_HIDDEN:
+          printf("Window hidden\n");
           PauseGame(&game);
           break;
         }

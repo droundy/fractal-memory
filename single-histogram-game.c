@@ -406,7 +406,7 @@ void HandleMouse(SingleHistogramGame *g, int x, int y) {
 
 void PauseGame(SingleHistogramGame *g) {
   SDL_AtomicSet(&game.display_on, 0);
-  g->frame_time = 1000; // once per second.
+  g->frame_time = 1000; // once per second to slow down FillBuffer CPU use.
 }
 
 void ResumeGame(SingleHistogramGame *g) {

@@ -18,10 +18,17 @@
 
 #include "game.h"
 #include "words.h"
+#include "quick-random.h"
+
+static QuickRandom myrand = { 0, 0 };
 
 void SetOriginal(SingleHistogramGame *g) {
+  if (myrand.m_w == 0) {
+    myrand.m_w = SDL_GetTicks();
+    myrand.m_z = SDL_GetPerformanceCounter();
+  }
   g->backR = g->backG = g->backB = background_gray;
-  g->original.seed = SDL_GetTicks();
+  g->original.seed = abs(quickrand32(&myrand) % (10*num_words));
   g->original.str = words[g->original.seed % num_words];
   g->original.original = g->original.seed;
   g->original.tweak = NOTWEAK;
@@ -64,11 +71,11 @@ void SetOriginal(SingleHistogramGame *g) {
 void NextGuess(SingleHistogramGame *g) {
   g->backR = g->backG = g->backB = background_gray;
   const double frac_original = 1.0/10;
-  const double randd = (quickrand32(&g->f.r) % g->on_display.seed) / (double) g->on_display.seed;
+  const double randd = ((quickrand32(&myrand) + quickrand32(&g->f.r)) % 10000) / 10000.0;
   g->on_display.seed++;
   if (randd > frac_original) {
     do {
-      int tweakness = quickrand32(&g->f.r) % 100;
+      int tweakness = quickrand32(&myrand) % 100;
       if (tweakness < 5 || 1) {
         g->on_display.tweak = NOTWEAK;
       } else if (tweakness < 10) {
