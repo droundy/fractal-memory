@@ -161,6 +161,7 @@ void TweakFlame(Flames *f, Flames *o, Tweak t) {
     for (int i=num_trans; i<f->N; i++) {
       f->Transformations[i] = o->Transformations[i];
     }
+    strncpy(f->symmetry_description, o->symmetry_description, 5000);
   }
   if (t & COPYALLBUTSYMMETRY) {
     for (int i=0; i<num_trans; i++) {

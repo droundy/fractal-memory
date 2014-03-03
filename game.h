@@ -105,8 +105,11 @@ int is_original(TweakedSeed seed);
 void ShowTweaked(char *buffer, TweakedSeed seed);
 void NextGuess(SingleHistogramGame *g);
 void SetOriginal(SingleHistogramGame *g);
+Flames CreateFlame(TweakedSeed seed);
 
 void SaveToFile(SingleHistogramGame *g, const char *fname);
 
 void PauseGame(SingleHistogramGame *g);
 void ResumeGame(SingleHistogramGame *g);
+
+void RedirectToNetwork(const char *userid);

@@ -228,10 +228,18 @@ void InitFlames(Flames *f, SecureRandom *s) {
     f->Transformations[i].A = 0.5;
   }
 
+  char *description = f->symmetry_description;
+
   // Now we add in the symmetry operations!
   if (f->N < MAX_TRANS/2) {
     int n = InitSymmetry(&f->Transformations[f->N], s);
     if (n*f->N < MAX_TRANS && n > 0) {
+      if (n > 1) {
+        description += sprintf(description, "%s(%d) <%g %g>",
+                               show_type(f->Transformations[f->N].Type[0]), n,
+                               f->Transformations[f->N].Pre.Ox,
+                               f->Transformations[f->N].Pre.Oy);
+      }
       for (int i=f->N+1; i<n*f->N; i++) {
         f->Transformations[i] = f->Transformations[f->N];
       }
@@ -261,13 +269,26 @@ void InitFlames(Flames *f, SecureRandom *s) {
   if (f->N < MAX_TRANS/2) {
     int n = InitSymmetry(&f->Transformations[f->N], s);
     if (n*f->N < MAX_TRANS && n > 0) {
+      int same_center = 0;
       if (secure_random(s) & 1) {
+        same_center = 1;
         // with 50% probability, put the second symmetry operation at
         // the same origin as the first.
         f->Transformations[f->N].Pre.Ox = f->Transformations[f->N-1].Pre.Ox;
         f->Transformations[f->N].Pre.Oy = f->Transformations[f->N-1].Pre.Oy;
         f->Transformations[f->N].Post.Ox = f->Transformations[f->N-1].Post.Ox;
         f->Transformations[f->N].Post.Oy = f->Transformations[f->N-1].Post.Oy;
+      }
+      if (n > 1) {
+        if (same_center) {
+          description += sprintf(description, " %s(%d) <same>",
+                                 show_type(f->Transformations[f->N].Type[0]), n);
+        } else {
+          description += sprintf(description, " %s(%d) <%g %g>",
+                                 show_type(f->Transformations[f->N].Type[0]), n,
+                                 f->Transformations[f->N].Pre.Ox,
+                                 f->Transformations[f->N].Pre.Oy);
+        }
       }
       for (int i=f->N+1; i<n*f->N; i++) {
         f->Transformations[i] = f->Transformations[f->N];

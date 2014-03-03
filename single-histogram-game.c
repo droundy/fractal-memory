@@ -82,6 +82,7 @@ int FillBuffer(SingleHistogramGame *g) {
 }
 
 void Init(SingleHistogramGame *g) {
+  RedirectToNetwork("test");
   SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
 
   if(TTF_Init()==-1) {
@@ -282,9 +283,13 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
 
 void HandleLeft(SingleHistogramGame *g) {
   if (g->on_display.seed != g->original.seed) {
+    Flames o = CreateFlame(g->original);
+    Flames c = CreateFlame(g->on_display);
     if (is_original(g->on_display)) {
+      AnnouncePair(&o, &c, "false negative");
       g->false_negatives += 1;
     } else {
+      AnnouncePair(&o, &c, "true negative");
       g->true_negatives += 1;
     }
   }
@@ -293,9 +298,13 @@ void HandleLeft(SingleHistogramGame *g) {
 
 void HandleRight(SingleHistogramGame *g) {
   if (g->on_display.seed != g->original.seed) {
+    Flames o = CreateFlame(g->original);
+    Flames c = CreateFlame(g->on_display);
     if (is_original(g->on_display)) {
+      AnnouncePair(&o, &c, "true positive");
       g->true_positives += 1;
     } else {
+      AnnouncePair(&o, &c, "false positive");
       g->false_positives += 1;
     }
   }

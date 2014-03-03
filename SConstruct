@@ -19,7 +19,7 @@ env.ParseConfig('pkg-config --libs freetype2')
 SOURCES = glob.glob('*.c')
 
 # add additional compiler flags
-env.Append(CCFLAGS = ['-g', '-Wall', '-Werror', '-std=c99', '-DSDL_ASSERT_LEVEL=2'])
+env.Append(CCFLAGS = ['-g', '-Wall', '-Werror', '-std=c99', '-DSDL_ASSERT_LEVEL=2', '-D_POSIX_C_SOURCE=1'])
 # add additional libraries to link against
 #env.Append(LIBS = ['SDL_mixer', 'SDL_image'])
 

@@ -54,3 +54,68 @@ void PrintFlames(Flames *f) {
     PrintTransform(&f->Transformations[i], i);
   }
 }
+
+static inline int min(int a, int b) {
+  return (a<b) ? a : b;
+}
+
+void AnnouncePair(Flames *original, Flames *contender, const char *str) {
+  printf("\n\nPair:  %s\n", str);
+  printf("  %30s | %30s\n", original->symmetry_description, contender->symmetry_description);
+  for (int i=0; i<num_trans; i++) {
+    Transformation o = original->Transformations[i];
+    Transformation c = contender->Transformations[i];
+    printf("  %30s-%d-%30s\n", "", i, "");
+    for (int j=0;j<min(o.NTypes, c.NTypes);j++) {
+      if (j >= o.NTypes) o.Type[j] = -1;
+      if (j >= c.NTypes) c.Type[j] = -1;
+      if (o.Type[j] == c.Type[j]) {
+        printf("  %30s = %-30s\n", show_type(o.Type[j]), show_type(c.Type[j]));
+      } else {
+        printf("  %30s | %-30s\n", show_type(o.Type[j]), show_type(c.Type[j]));
+      }
+    }
+    if (o.R == c.R && o.G == c.G && o.B == c.B) {
+      printf("  C: %9.4f%9.4f%9.4f = %-9.4f%-9.4f%-9.4f\n", o.R, o.G, o.B, c.R, c.G, c.B);
+    } else {
+      printf("  C: %9.4f%9.4f%9.4f | %-9.4f%-9.4f%-9.4f\n", o.R, o.G, o.B, c.R, c.G, c.B);
+    }
+    if (o.Pre.Mxx == c.Pre.Mxx && o.Pre.Mxy == c.Pre.Mxy &&o.Pre.Ox == c.Pre.Ox) {
+      printf("  %10g%10g%10g = %10g%10g%10g\n",
+             o.Pre.Mxx, o.Pre.Mxy, o.Pre.Ox,
+             c.Pre.Mxx, c.Pre.Mxy, c.Pre.Ox);
+    } else {
+      printf("  %10g%10g%10g | %10g%10g%10g\n",
+             o.Pre.Mxx, o.Pre.Mxy, o.Pre.Ox,
+             c.Pre.Mxx, c.Pre.Mxy, c.Pre.Ox);
+    }
+    if (o.Pre.Myx == c.Pre.Myx && o.Pre.Myy == c.Pre.Myy &&o.Pre.Oy == c.Pre.Oy) {
+      printf("  %10g%10g%10g = %10g%10g%10g\n",
+             o.Pre.Myx, o.Pre.Myy, o.Pre.Oy,
+             c.Pre.Myx, c.Pre.Myy, c.Pre.Oy);
+    } else {
+      printf("  %10g%10g%10g | %10g%10g%10g\n",
+             o.Pre.Myx, o.Pre.Myy, o.Pre.Oy,
+             c.Pre.Myx, c.Pre.Myy, c.Pre.Oy);
+    }
+    printf("  %30s * %30s\n", "", "");
+    if (o.Pre.Mxx == c.Pre.Mxx && o.Pre.Mxy == c.Pre.Mxy &&o.Pre.Ox == c.Pre.Ox) {
+      printf("  %10g%10g%10g = %10g%10g%10g\n",
+             o.Pre.Mxx, o.Pre.Mxy, o.Pre.Ox,
+             c.Pre.Mxx, c.Pre.Mxy, c.Pre.Ox);
+    } else {
+      printf("  %10g%10g%10g | %10g%10g%10g\n",
+             o.Pre.Mxx, o.Pre.Mxy, o.Pre.Ox,
+             c.Pre.Mxx, c.Pre.Mxy, c.Pre.Ox);
+    }
+    if (o.Pre.Myx == c.Pre.Myx && o.Pre.Myy == c.Pre.Myy &&o.Pre.Oy == c.Pre.Oy) {
+      printf("  %10g%10g%10g = %10g%10g%10g\n",
+             o.Pre.Myx, o.Pre.Myy, o.Pre.Oy,
+             c.Pre.Myx, c.Pre.Myy, c.Pre.Oy);
+    } else {
+      printf("  %10g%10g%10g | %10g%10g%10g\n",
+             o.Pre.Myx, o.Pre.Myy, o.Pre.Oy,
+             c.Pre.Myx, c.Pre.Myy, c.Pre.Oy);
+    }
+  }
+}

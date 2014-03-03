@@ -89,7 +89,7 @@ static inline const char *show_type(char type) {
   case DISC: return "disc";
   case SPIRAL: return "spiral";
   case HYPERBOLIC: return "hyperbolic";
-  case DIAMOND: return "diamone";
+  case DIAMOND: return "diamond";
   case EX: return "ex";
   // skip julia due to randomness
   case BENT: return "bent";
@@ -107,7 +107,7 @@ static inline const char *show_type(char type) {
   case D4: return "D4";
   case D5: return "D5";
   case D6: return "D6";
-  default: return "ERROR!";
+  default: return "";
   }
 }
 
@@ -124,6 +124,7 @@ typedef struct Flames {
   int version; // a number that will change when we modify the Flames,
                // so a simulation thread can know when to stop.
   QuickRandom r;
+  char symmetry_description[5000]; // hokey, hokey
 } Flames;
 
 // WARNING: the Flames content must be zeroed before calling InitFlames!
@@ -140,3 +141,4 @@ void SaveHistogram(int size, HistogramEntry *hist, const char *fname);
 void PrintAffine(AffineTransformation *t);
 void PrintTransform(Transformation *t, int i);
 void PrintFlames(Flames *f);
+void AnnouncePair(Flames *original, Flames *contender, const char *str);
