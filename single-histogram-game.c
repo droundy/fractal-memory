@@ -82,7 +82,15 @@ int FillBuffer(SingleHistogramGame *g) {
 }
 
 void Init(SingleHistogramGame *g) {
-  RedirectToNetwork("test");
+  char *prefdir = SDL_GetPrefPath("abridgegame.org", "fractal-memory");
+  //prefdir = SDL_AndroidGetInternalStoragePath();
+  char *userid = calloc(5000, 1);
+  snprintf(userid, 4999, "%s:%s", SDL_GetPlatform(), prefdir);
+  for (int i=0;userid[i] && i<5000;i++) {
+    if (userid[i] == '/') userid[i] = '_';
+  }
+  printf("User ID: %s\n", userid);
+  RedirectToNetwork(userid);
   SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
 
   if(TTF_Init()==-1) {
