@@ -76,6 +76,6 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  printf("All done!\n");
+  SDL_Quit();
   return 0;
 }
