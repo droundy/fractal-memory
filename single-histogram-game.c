@@ -83,14 +83,48 @@ int FillBuffer(SingleHistogramGame *g) {
 
 void Init(SingleHistogramGame *g) {
   char *prefdir = SDL_GetPrefPath("abridgegame.org", "fractal-memory");
-  //prefdir = SDL_AndroidGetInternalStoragePath();
+#ifdef ANDROID
+  prefdir = SDL_AndroidGetInternalStoragePath();
+#endif
   char *userid = calloc(5000, 1);
-  snprintf(userid, 4999, "%s:%s", SDL_GetPlatform(), prefdir);
-  for (int i=0;userid[i] && i<5000;i++) {
-    if (userid[i] == '/') userid[i] = '_';
+  sprintf(userid, "%s/fractal-id.txt", prefdir);
+  FILE *namefile = fopen(userid, "rb");
+  if (namefile) {
+    fscanf(namefile, "%s", userid);
+    fclose(namefile);
+  } else {
+    namefile = fopen(userid, "wb");
+    if (namefile) {
+      char *newid = calloc(5000, 1);
+      prefdir++; // skip leading slash
+      if (strlen(prefdir) > 45) {
+        prefdir[strlen(prefdir)-45] = 0; // cut off the fixed portion of the directory
+      } else {
+        prefdir[0] = 0; // cut the directory entirely
+      }
+      sprintf(newid, "%s-%s-%s-%s",
+              words[SDL_GetPerformanceCounter() % num_words],
+              words[SDL_GetPerformanceCounter() % num_words],
+              prefdir,
+              SDL_GetPlatform());
+      for (int i=0;newid[i] && i<5000;i++) {
+        if (newid[i] == '/') newid[i] = '_';
+        if (newid[i] == ' ') newid[i] = '_';
+      }
+      fprintf(namefile, "%s", newid);
+      fclose(namefile);
+      strcpy(userid, newid);
+      free(newid);
+    } else {
+      sprintf(userid, "transient-%s-%s-%s",
+              words[SDL_GetPerformanceCounter() % num_words],
+              words[SDL_GetPerformanceCounter() % num_words],
+              SDL_GetPlatform());
+    }
   }
   printf("User ID: %s\n", userid);
   RedirectToNetwork(userid);
+  free(userid);
   SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
 
   if(TTF_Init()==-1) {
