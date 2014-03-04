@@ -39,27 +39,41 @@ void SetOriginal(SingleHistogramGame *g) {
     // no tweak!
     break;
   case 1:
+    printf("Maintaining all but two shapes.\n");
+    g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR | COPYSHAPE0 | COPYSHAPE1 | COPYSHAPE2;
+    break;
   case 2:
     printf("Using all but color.\n");
     g->on_display.alltweak = COPYSHAPE | COPYSYMMETRY;
     break;
   case 3:
+    printf("Maintaining all but symmetry location.\n");
+    g->on_display.alltweak = COPYALLBUTSYMMETRYLOCATION;
+    break;
   case 4:
     printf("Maintaining symmetry and grayness.\n");
     g->on_display.alltweak = COPYSYMMETRY | COPYGRAY;
     g->original.alltweak = COPYGRAY;
     break;
   case 5:
+    printf("Maintaining all but symmetry kind.\n");
+    g->on_display.alltweak = COPYALLBUTSYMMETRYKIND;
+    break;
   case 6:
     printf("Maintaining all but symmetry.\n");
     g->on_display.alltweak = COPYALLBUTSYMMETRY;
     break;
   case 7:
-    printf("Maintaining all but symmetry and grayness.\n");
-    g->on_display.alltweak = COPYALLBUTSYMMETRY | COPYGRAY;
-    g->original.alltweak = COPYGRAY;
+    //printf("Maintaining all but symmetry and grayness.\n");
+    //g->on_display.alltweak = COPYALLBUTSYMMETRY | COPYGRAY;
+    //g->original.alltweak = COPYGRAY;
+    printf("Maintaining all but one color.\n");
+    g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR0 | COPYCOLOR1 | COPYCOLOR2 | COPYSHAPE;
     break;
   case 8:
+    printf("Maintaining all but one shape.\n");
+    g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR | COPYSHAPE0 | COPYSHAPE1 | COPYSHAPE2;
+    break;
   case 9:
     printf("Maintaining symmetry and color.\n");
     g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR;
@@ -112,13 +126,29 @@ void NextGuess(SingleHistogramGame *g) {
   SetFlame(&game, g->on_display);
 }
 void TweakFlame(Flames *f, Flames *o, Tweak t) {
-  if (t & COPYCOLOR) {
-    for (int i=0;i<MAX_TRANS; i++) {
-      f->Transformations[i].R = o->Transformations[i].R;
-      f->Transformations[i].G = o->Transformations[i].G;
-      f->Transformations[i].B = o->Transformations[i].B;
-      f->Transformations[i].A = o->Transformations[i].A;
-    }
+  if (t & COPYCOLOR0) {
+    f->Transformations[0].R = o->Transformations[0].R;
+    f->Transformations[0].G = o->Transformations[0].G;
+    f->Transformations[0].B = o->Transformations[0].B;
+    f->Transformations[0].A = o->Transformations[0].A;
+  }
+  if (t & COPYCOLOR1) {
+    f->Transformations[1].R = o->Transformations[1].R;
+    f->Transformations[1].G = o->Transformations[1].G;
+    f->Transformations[1].B = o->Transformations[1].B;
+    f->Transformations[1].A = o->Transformations[1].A;
+  }
+  if (t & COPYCOLOR2) {
+    f->Transformations[2].R = o->Transformations[2].R;
+    f->Transformations[2].G = o->Transformations[2].G;
+    f->Transformations[2].B = o->Transformations[2].B;
+    f->Transformations[2].A = o->Transformations[2].A;
+  }
+  if (t & COPYCOLOR3) {
+    f->Transformations[3].R = o->Transformations[3].R;
+    f->Transformations[3].G = o->Transformations[3].G;
+    f->Transformations[3].B = o->Transformations[3].B;
+    f->Transformations[3].A = o->Transformations[3].A;
   }
   if (t & COPYSHAPE0) {
     o->Transformations[0].R = f->Transformations[0].R;
@@ -160,6 +190,40 @@ void TweakFlame(Flames *f, Flames *o, Tweak t) {
       f->Transformations[i] = o->Transformations[i];
     }
   }
+  if (t & COPYALLBUTSYMMETRYLOCATION) {
+    for (int i=0; i<num_trans; i++) {
+      f->Transformations[i] = o->Transformations[i];
+    }
+    f->N = o->N;
+    double x = f->Transformations[4].Pre.Ox;
+    double y = f->Transformations[4].Pre.Oy;
+    double ox = o->Transformations[4].Pre.Ox;
+    for (int i=4; i<f->N; i++) {
+      f->Transformations[i] = o->Transformations[i];
+      if (f->Transformations[i].Pre.Ox == ox) {
+        f->Transformations[i].Pre.Ox = x;
+        f->Transformations[i].Pre.Oy = y;
+        f->Transformations[i].Post.Ox = -x;
+        f->Transformations[i].Post.Oy = -y;
+      }
+    }
+  }
+  if (t & COPYALLBUTSYMMETRYKIND) {
+    for (int i=0; i<num_trans; i++) {
+      f->Transformations[i] = o->Transformations[i];
+    }
+    double x = o->Transformations[4].Pre.Ox;
+    double y = o->Transformations[4].Pre.Oy;
+    double fx = f->Transformations[4].Pre.Ox;
+    for (int i=4; i<f->N; i++) {
+      if (f->Transformations[i].Pre.Ox == fx) {
+        f->Transformations[i].Pre.Ox = x;
+        f->Transformations[i].Pre.Oy = y;
+        f->Transformations[i].Post.Ox = -x;
+        f->Transformations[i].Post.Oy = -y;
+      }
+    }
+  }
   if (t & COPYGRAY) {
     for (int i=0;i<MAX_TRANS; i++) {
       double gray = o->Transformations[i].R/3 +
@@ -183,12 +247,8 @@ int is_original(TweakedSeed seed) {
      seed.tweak & COPYSHAPE3 &&
      seed.tweak & COPYSYMMETRY &&
      seed.tweak & COPYGRAY) ||
-    (seed.tweak & COPYSHAPE0 &&
-     seed.tweak & COPYSHAPE1 &&
-     seed.tweak & COPYSHAPE2 &&
-     seed.tweak & COPYSHAPE3 &&
-     seed.tweak & COPYSYMMETRY &&
-     seed.tweak & COPYCOLOR) ||
+    ((seed.tweak & (COPYSHAPE | COPYCOLOR | COPYSYMMETRY))
+         == (COPYSHAPE | COPYCOLOR | COPYSYMMETRY)) ||
     (seed.tweak & COPYSYMMETRY && seed.tweak & COPYALLBUTSYMMETRY);
 }
 
@@ -204,9 +264,26 @@ void ShowTweaked(char *buffer, TweakedSeed seed) {
     return;
   }
   const char *separator = "";
-  if (seed.tweak & COPYCOLOR) {
+  if ((seed.tweak & COPYCOLOR) == COPYCOLOR) {
     buffer += sprintf(buffer, "%scolor", separator);
     separator = ", ";
+  } else {
+    if (seed.tweak & COPYCOLOR0) {
+      buffer += sprintf(buffer, "%scolor 0", separator);
+      separator = ", ";
+    }
+    if (seed.tweak & COPYCOLOR1) {
+      buffer += sprintf(buffer, "%scolor 1", separator);
+      separator = ", ";
+    }
+    if (seed.tweak & COPYCOLOR2) {
+      buffer += sprintf(buffer, "%scolor 2", separator);
+      separator = ", ";
+    }
+    if (seed.tweak & COPYCOLOR3) {
+      buffer += sprintf(buffer, "%scolor 3", separator);
+      separator = ", ";
+    }
   }
   if (seed.tweak & COPYSHAPE0 &&
       seed.tweak & COPYSHAPE1 &&
@@ -239,6 +316,14 @@ void ShowTweaked(char *buffer, TweakedSeed seed) {
   }
   if (seed.tweak & COPYALLBUTSYMMETRY) {
     buffer += sprintf(buffer, "%ssame except for symmetry", separator);
+    separator = ", ";
+  }
+  if (seed.tweak & COPYALLBUTSYMMETRYLOCATION) {
+    buffer += sprintf(buffer, "%ssame except for symmetry location", separator);
+    separator = ", ";
+  }
+  if (seed.tweak & COPYALLBUTSYMMETRYKIND) {
+    buffer += sprintf(buffer, "%ssame except for symmetry kind", separator);
     separator = ", ";
   }
   sprintf(buffer, ": %d", seed.seed);

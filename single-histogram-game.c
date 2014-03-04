@@ -180,7 +180,7 @@ void Init(SingleHistogramGame *g) {
   if (!g->font) exitMessage("Unable to open font");
 
   g->false_positives = g->true_positives = g->false_negatives = g->true_negatives = 0;
-  g->games_won = 0;
+  g->score = 0;
 
   SetOriginal(g);
 }
@@ -280,7 +280,7 @@ void Draw(SingleHistogramGame *g) {
               g->false_positives, g->true_positives);
       renderTextAt(g, buffer, g->fontsize, 8*g->fontsize/2);
     }
-    sprintf(buffer, "games won:  %2d", g->games_won);
+    sprintf(buffer, "total score:  %2d", g->score);
     renderTextAt(g, buffer, g->fontsize, 11*g->fontsize/2);
 
     SDL_RenderPresent(g->sdlRenderer);
@@ -323,6 +323,18 @@ void HandleKey(SingleHistogramGame *g, SDL_Keycode c) {
   }
 }
 
+int CheckGameOver(SingleHistogramGame *g) {
+  if (g->true_positives + g->false_positives + g->false_negatives < 3)
+    return 0;
+  // We finished a game!
+  g->score += g->true_positives;
+  g->score -= g->false_positives;
+  g->score -= g->false_negatives;
+  g->false_positives = g->true_positives = g->false_negatives = g->true_negatives = 0;
+  SetOriginal(g);
+  return 1;
+}
+
 void HandleLeft(SingleHistogramGame *g) {
   if (g->on_display.seed != g->original.seed) {
     Flames o = CreateFlame(g->original);
@@ -335,7 +347,7 @@ void HandleLeft(SingleHistogramGame *g) {
       g->true_negatives += 1;
     }
   }
-  NextGuess(g);
+  if (!CheckGameOver(g)) NextGuess(g);
 }
 
 void HandleRight(SingleHistogramGame *g) {
@@ -350,14 +362,7 @@ void HandleRight(SingleHistogramGame *g) {
       g->false_positives += 1;
     }
   }
-  if (g->true_positives == 3) {
-    // We won a game!
-    g->false_positives = g->true_positives = g->false_negatives = g->true_negatives = 0;
-    g->games_won++;
-    SetOriginal(g);
-  } else {
-    NextGuess(g);
-  }
+  if (!CheckGameOver(g)) NextGuess(g);
 }
 
 void HandleUp(SingleHistogramGame *g) {

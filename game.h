@@ -37,17 +37,23 @@ static inline  void exitMessage(const char *msg) {
 }
 
 typedef enum {
-  COPYCOLOR = 1,
-  COPYSHAPE0 = 1<<1,
-  COPYSHAPE1 = 1<<2,
-  COPYSHAPE2 = 1<<3,
-  COPYSHAPE3 = 1<<4,
-  COPYSYMMETRY = 1<<5,
-  COPYALLBUTSYMMETRY = 1<<6,
+  COPYCOLOR0 = 1,
+  COPYCOLOR1 = 1<<1,
+  COPYCOLOR2 = 1<<2,
+  COPYCOLOR3 = 1<<3,
+  COPYSHAPE0 = 1<<4,
+  COPYSHAPE1 = 1<<5,
+  COPYSHAPE2 = 1<<6,
+  COPYSHAPE3 = 1<<7,
+  COPYSYMMETRY = 1<<8,
+  COPYALLBUTSYMMETRYLOCATION = 1<<9,
+  COPYALLBUTSYMMETRYKIND = 1<<10,
+  COPYALLBUTSYMMETRY = 1<<11,
   NOTWEAK = 0,
-  COPYGRAY = 1<<7,
+  COPYGRAY = 1<<12,
 } Tweak;
 
+static const Tweak COPYCOLOR = COPYCOLOR0 | COPYCOLOR1 | COPYCOLOR2 | COPYCOLOR3;
 static const Tweak COPYSHAPE = COPYSHAPE0 | COPYSHAPE1 | COPYSHAPE2 | COPYSHAPE3;
 static const Tweak COPYORIGINAL = COPYSYMMETRY | COPYALLBUTSYMMETRY;
 
@@ -63,7 +69,7 @@ typedef struct {
   int backR, backG, backB;
 
   int false_positives, true_positives, false_negatives, true_negatives;
-  int games_won;
+  int score;
 
   int x, y;
   TweakedSeed original, on_display;
