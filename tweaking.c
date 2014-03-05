@@ -89,8 +89,6 @@ void SetOriginal(SingleHistogramGame *g) {
       COPYSHAPE0 | COPYSHAPE1 | COPYSHAPE2 | COPYSHAPE3AFFINE;
     break;
   }
-  g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR |
-    COPYSHAPE0 | COPYSHAPE1 | COPYSHAPE2 | COPYSHAPE3AFFINE;
   SetFlame(g, g->on_display);
 }
 
