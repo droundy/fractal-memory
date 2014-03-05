@@ -34,13 +34,13 @@ void SetOriginal(SingleHistogramGame *g) {
   g->original.tweak = NOTWEAK;
   g->original.alltweak = NOTWEAK;
   g->on_display = g->original;
-  switch (SDL_GetTicks() % 10) {
+  switch (SDL_GetTicks() % 12) {
   case 0:
     // no tweak!
     break;
   case 1:
     printf("Maintaining all but two shapes.\n");
-    g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR | COPYSHAPE0 | COPYSHAPE1 | COPYSHAPE2;
+    g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR | COPYSHAPE0 | COPYSHAPE1;
     break;
   case 2:
     printf("Using all but color.\n");
@@ -78,7 +78,19 @@ void SetOriginal(SingleHistogramGame *g) {
     printf("Maintaining symmetry and color.\n");
     g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR;
     break;
+  case 10:
+    printf("Maintaining all but one shape's affine.\n");
+    g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR |
+      COPYSHAPE0 | COPYSHAPE1 | COPYSHAPE2 | COPYSHAPE3TYPES;
+    break;
+  case 11:
+    printf("Maintaining all but one shape's types.\n");
+    g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR |
+      COPYSHAPE0 | COPYSHAPE1 | COPYSHAPE2 | COPYSHAPE3AFFINE;
+    break;
   }
+  g->on_display.alltweak = COPYSYMMETRY | COPYCOLOR |
+    COPYSHAPE0 | COPYSHAPE1 | COPYSHAPE2 | COPYSHAPE3AFFINE;
   SetFlame(g, g->on_display);
 }
 
@@ -177,6 +189,16 @@ void TweakFlame(Flames *f, Flames *o, Tweak t) {
     o->Transformations[3].B = f->Transformations[3].B;
     o->Transformations[3].A = f->Transformations[3].A;
     f->Transformations[3] = o->Transformations[3];
+  }
+  if (t & COPYSHAPE3AFFINE) {
+    f->Transformations[3].Pre = o->Transformations[3].Pre;
+    f->Transformations[3].Post = o->Transformations[3].Post;
+  }
+  if (t & COPYSHAPE3TYPES) {
+    f->Transformations[3].NTypes = o->Transformations[3].NTypes;
+    for (int i=0; i<3; i++) {
+      f->Transformations[3].Type[i] = o->Transformations[3].Type[i];
+    }
   }
   if (t & COPYSYMMETRY) {
     f->N = o->N;
@@ -307,6 +329,14 @@ void ShowTweaked(char *buffer, TweakedSeed seed) {
     }
     if (seed.tweak & COPYSHAPE3 && !(seed.tweak & COPYALLBUTSYMMETRY)) {
       buffer += sprintf(buffer, "%sshape 3", separator);
+      separator = ", ";
+    }
+    if (seed.tweak & COPYSHAPE3AFFINE && !(seed.tweak & COPYALLBUTSYMMETRY)) {
+      buffer += sprintf(buffer, "%sshape 3 affine", separator);
+      separator = ", ";
+    }
+    if (seed.tweak & COPYSHAPE3TYPES && !(seed.tweak & COPYALLBUTSYMMETRY)) {
+      buffer += sprintf(buffer, "%sshape 3 types", separator);
       separator = ", ";
     }
   }
