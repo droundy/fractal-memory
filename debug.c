@@ -118,4 +118,5 @@ void AnnouncePair(Flames *original, Flames *contender, const char *str) {
              c.Pre.Myx, c.Pre.Myy, c.Pre.Oy);
     }
   }
+  fflush(stdout);
 }
